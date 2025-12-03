@@ -28,7 +28,7 @@ def test_no_github_link_found(mocker, caplog):
     mocker.patch("src.utils.github_link_finder.hf_hub_download", return_value="fake_readme.md")
     mocker.patch("builtins.open", mocker.mock_open(read_data=fake_readme_content))
 
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.WARNING, logger="phase1_cli"):
         found_url = find_github_url_from_hf("some-hf-model/some-model")
         assert found_url is None
         assert "No GitHub link found" in caplog.text

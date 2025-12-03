@@ -1,6 +1,6 @@
 # metrics/net_score.py
 
-from typing import Dict, Mapping
+from collections.abc import Mapping
 
 # Phase 1 metric weights (you can tweak these if your team decided differently)
 BASE_WEIGHTS: Mapping[str, float] = {
@@ -27,7 +27,7 @@ WEIGHTS: Mapping[str, float] = {
 }
 
 
-def compute_net_score(metric_scores: Dict[str, float]) -> float:
+def compute_net_score(metric_scores: dict[str, float]) -> float:
     """
     Compute a weighted net_score from individual metric scores.
 

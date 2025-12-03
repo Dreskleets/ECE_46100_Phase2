@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
+
 from src.api.routes import router
 
 app = FastAPI(title="Trustworthy Model Registry", version="1.0.0")
@@ -20,5 +22,6 @@ async def health_check():
     return {"status": "ok"}
 
 # Lambda Handler
-from mangum import Mangum
+
+
 handler = Mangum(app)

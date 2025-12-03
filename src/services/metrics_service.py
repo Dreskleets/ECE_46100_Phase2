@@ -1,13 +1,12 @@
 import importlib
-import pkgutil
 import io
-import sys
 import os
+import pkgutil
 import shutil
 import stat
-import logging
-from typing import Dict, Any, Callable, Tuple
-from contextlib import redirect_stdout, redirect_stderr
+from collections.abc import Callable
+from contextlib import redirect_stderr, redirect_stdout
+
 from src.api.models import PackageRating
 from src.utils.logging import logger
 
@@ -18,18 +17,19 @@ def remove_readonly(func, path, excinfo):
     func(path)
 
 def classify_url(url: str) -> str:
-    from urllib.parse import urlparse
     u = (url or "").strip().lower()
-    if not u: return "CODE"
+    if not u:
+        return "CODE"
     if "huggingface.co" in u:
-        if "/datasets/" in u: return "DATASET"
+        if "/datasets/" in u:
+            return "DATASET"
         return "MODEL"
     if any(x in u for x in ["github.com", "gitlab.com", "bitbucket.org"]):
         return "CODE"
     return "CODE"
 
-def load_metrics() -> Dict[str, Callable]:
-    metrics: Dict[str, Callable] = {}
+def load_metrics() -> dict[str, Callable]:
+    metrics: dict[str, Callable] = {}
     metrics_pkg = "src.metrics"
     try:
         package = importlib.import_module(metrics_pkg)
@@ -37,12 +37,13 @@ def load_metrics() -> Dict[str, Callable]:
         return metrics
 
     for _, mod_name, is_pkg in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
-        if is_pkg: continue
+        if is_pkg:
+            continue
         try:
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 module = importlib.import_module(mod_name)
             if hasattr(module, "metric"):
-                metrics[mod_name.split(".")[-1]] = getattr(module, "metric")
+                metrics[mod_name.split(".")[-1]] = module.metric
         except Exception:
             continue
     return metrics
@@ -51,8 +52,8 @@ def compute_package_rating(url: str) -> PackageRating:
     # 1. Clone if needed (simplified for now, assuming URL is enough or cloning happens here)
     # The existing run.py logic clones repos. We should probably do that here too.
     
-    from src.utils.repo_cloner import clone_repo_to_temp
     from src.utils.github_link_finder import find_github_url_from_hf
+    from src.utils.repo_cloner import clone_repo_to_temp
     
     resource = {
         "url": url,
@@ -73,7 +74,8 @@ def compute_package_rating(url: str) -> PackageRating:
         try:
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 repo_to_clone = find_github_url_from_hf(resource["name"])
-        except: pass
+        except Exception:
+            pass
 
     local_path = None
     if repo_to_clone:
@@ -81,7 +83,8 @@ def compute_package_rating(url: str) -> PackageRating:
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 local_path = clone_repo_to_temp(repo_to_clone)
             resource["local_path"] = local_path
-        except: pass
+        except Exception:
+            pass
 
     metrics = load_metrics()
     results = {}
@@ -91,14 +94,15 @@ def compute_package_rating(url: str) -> PackageRating:
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 score, latency = func(resource)
             results[name] = (float(score), float(latency))
-        except:
+        except Exception:
             results[name] = (0.0, 0.0)
 
     # Cleanup
     if local_path:
         try:
             shutil.rmtree(local_path, onerror=remove_readonly)
-        except: pass
+        except Exception:
+            pass
 
     # Map to PackageRating
     # Note: The keys in 'results' match the module names in src/metrics
@@ -138,7 +142,8 @@ def compute_package_rating(url: str) -> PackageRating:
     else:
         # Simple average as fallback
         vals = [v[0] for k,v in results.items() if k != "net_score"]
-        if vals: net_score_val = sum(vals)/len(vals)
+        if vals:
+            net_score_val = sum(vals)/len(vals)
         net_score_lat = sum([v[1] for k,v in results.items()])
 
     # --- Explicitly run new metrics that have different signatures ---

@@ -1,14 +1,19 @@
-from fastapi import APIRouter, HTTPException, status, Query, Header
-from typing import List, Optional
 import uuid
-import base64
+
+from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from src.api.models import (
-    Package, PackageMetadata, PackageData, PackageRating, 
-    PackageQuery, PackageRegEx, Error, PackageHistoryEntry, User, AuthenticationRequest, AuthenticationToken
+    AuthenticationRequest,
+    Package,
+    PackageData,
+    PackageHistoryEntry,
+    PackageMetadata,
+    PackageQuery,
+    PackageRating,
+    PackageRegEx,
 )
-from src.services.storage import storage
 from src.services.metrics_service import compute_package_rating
+from src.services.storage import storage
 
 router = APIRouter()
 
@@ -18,8 +23,8 @@ def generate_id() -> str:
 
 # --- Endpoints ---
 
-@router.post("/packages", response_model=List[PackageMetadata], status_code=status.HTTP_200_OK)
-async def get_packages(queries: List[PackageQuery], offset: Optional[str] = Query(None)):
+@router.post("/packages", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
+async def get_packages(queries: list[PackageQuery], offset: str | None = Query(None)):
     # TODO: Implement proper query filtering. For now, return all (pagination stub)
     # The spec says "Get packages" but body is PackageQuery list.
     # If queries is empty, return all?
@@ -28,8 +33,10 @@ async def get_packages(queries: List[PackageQuery], offset: Optional[str] = Quer
     # Note: offset is string in spec? usually int.
     off = 0
     if offset:
-        try: off = int(offset)
-        except: pass
+        try:
+            off = int(offset)
+        except Exception:
+            pass
         
     return storage.list_packages(offset=off)
 
@@ -57,7 +64,7 @@ async def delete_package(id: str):
     raise HTTPException(status_code=404, detail="Package not found")
 
 @router.post("/package", response_model=PackageMetadata, status_code=status.HTTP_201_CREATED)
-async def upload_package(package: PackageData, x_authorization: Optional[str] = Header(None, alias="X-Authorization")):
+async def upload_package(package: PackageData, x_authorization: str | None = Header(None, alias="X-Authorization")):
     # Handle Ingest (URL) vs Upload (Content)
     
     if package.URL and not package.Content:
@@ -132,11 +139,11 @@ async def rate_package(id: str):
         NetScore=0, NetScoreLatency=0
     )
 
-@router.post("/package/byRegEx", response_model=List[PackageMetadata], status_code=status.HTTP_200_OK)
+@router.post("/package/byRegEx", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
 async def search_by_regex(regex: PackageRegEx):
     return storage.search_by_regex(regex.RegEx)
 
-@router.get("/package/byName/{name}", response_model=List[PackageHistoryEntry], status_code=status.HTTP_200_OK)
+@router.get("/package/byName/{name}", response_model=list[PackageHistoryEntry], status_code=status.HTTP_200_OK)
 async def get_package_history(name: str):
     # TODO: Implement history
     return []

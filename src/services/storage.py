@@ -1,18 +1,20 @@
-from typing import List, Optional, Dict
+import os
+
 from src.api.models import Package, PackageMetadata
+
 
 class LocalStorage:
     def __init__(self):
         # In-memory storage: {package_id: Package}
-        self._packages: Dict[str, Package] = {}
+        self._packages: dict[str, Package] = {}
 
     def add_package(self, package: Package) -> None:
         self._packages[package.metadata.ID] = package
 
-    def get_package(self, package_id: str) -> Optional[Package]:
+    def get_package(self, package_id: str) -> Package | None:
         return self._packages.get(package_id)
 
-    def list_packages(self, offset: int = 0, limit: int = 10) -> List[PackageMetadata]:
+    def list_packages(self, offset: int = 0, limit: int = 10) -> list[PackageMetadata]:
         all_packages = list(self._packages.values())
         # Sort by ID or Name if needed, for now just slice
         # Pagination logic
@@ -29,7 +31,7 @@ class LocalStorage:
     def reset(self) -> None:
         self._packages.clear()
 
-    def search_by_regex(self, regex: str) -> List[PackageMetadata]:
+    def search_by_regex(self, regex: str) -> list[PackageMetadata]:
         import re
         try:
             pattern = re.compile(regex)
@@ -46,8 +48,8 @@ class LocalStorage:
 
 class S3Storage:
     def __init__(self, bucket_name: str, region: str):
+
         import boto3
-        import json
         self.bucket = bucket_name
         self.s3 = boto3.client('s3', region_name=region)
         self.prefix = "packages/"
@@ -58,7 +60,6 @@ class S3Storage:
         return f"{self.prefix}{package_id}/{kind}.{ext}"
 
     def add_package(self, package: Package) -> None:
-        import json
         # Store metadata
         self.s3.put_object(
             Bucket=self.bucket,
@@ -80,7 +81,7 @@ class S3Storage:
                     Key=self._get_key(package.metadata.ID, "content"),
                     Body=binary_data
                 )
-            except:
+            except Exception:
                 pass # TODO: Handle error
         
         # Also store full package data structure for easy retrieval?
@@ -92,8 +93,7 @@ class S3Storage:
             Body=package.model_dump_json()
         )
 
-    def get_package(self, package_id: str) -> Optional[Package]:
-        import json
+    def get_package(self, package_id: str) -> Package | None:
         from botocore.exceptions import ClientError
         try:
             response = self.s3.get_object(Bucket=self.bucket, Key=self._get_key(package_id, "full"))
@@ -102,7 +102,7 @@ class S3Storage:
         except ClientError:
             return None
 
-    def list_packages(self, offset: int = 0, limit: int = 10) -> List[PackageMetadata]:
+    def list_packages(self, offset: int = 0, limit: int = 10) -> list[PackageMetadata]:
         # Listing is expensive in S3 if we have to read every object.
         # Ideally we use DynamoDB or S3 Select or just list keys.
         # For now, list objects in prefix, read metadata.
@@ -157,12 +157,13 @@ class S3Storage:
             delete_keys = [{'Key': obj['Key']} for obj in objects['Contents']]
             self.s3.delete_objects(Bucket=self.bucket, Delete={'Objects': delete_keys})
 
-    def search_by_regex(self, regex: str) -> List[PackageMetadata]:
+    def search_by_regex(self, regex: str) -> list[PackageMetadata]:
         # Not efficiently possible in S3 without index.
         # Return empty or fetch all (slow).
         return []
 
-import os
+
+
 
 def get_storage():
     storage_type = os.environ.get("STORAGE_TYPE", "LOCAL").upper()

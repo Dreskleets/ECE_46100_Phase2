@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, HttpUrl
-from typing import List, Optional, Union
+
+from pydantic import BaseModel, Field
 
 # --- Package Models ---
 
@@ -9,9 +9,9 @@ class PackageMetadata(BaseModel):
     ID: str = Field(..., description="Package ID")
 
 class PackageData(BaseModel):
-    Content: Optional[str] = Field(None, description="Base64 encoded zip file content")
-    URL: Optional[str] = Field(None, description="Package URL (for ingest)")
-    JSProgram: Optional[str] = Field(None, description="JavaScript program for sensitive modules")
+    Content: str | None = Field(None, description="Base64 encoded zip file content")
+    URL: str | None = Field(None, description="Package URL (for ingest)")
+    JSProgram: str | None = Field(None, description="JavaScript program for sensitive modules")
 
 class Package(BaseModel):
     metadata: PackageMetadata
@@ -47,7 +47,7 @@ class PackageHistoryEntry(BaseModel):
 
 class PackageQuery(BaseModel):
     Name: str = Field(..., description="Package name")
-    Version: Optional[str] = Field(None, description="Package version")
+    Version: str | None = Field(None, description="Package version")
 
 class PackageRegEx(BaseModel):
     RegEx: str = Field(..., description="Regex for searching packages")

@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from src.main import app
 from src.services.storage import storage
 
@@ -21,6 +22,7 @@ def test_ingest_package():
     
     # For now, let's try to mock it in the test.
     from unittest.mock import patch
+
     from src.api.models import PackageRating
     
     with patch("src.api.routes.compute_package_rating") as mock_rate:
@@ -56,6 +58,7 @@ def test_rate_package():
     # Setup
     client.delete("/reset")
     from unittest.mock import patch
+
     from src.api.models import PackageRating
     
     with patch("src.api.routes.compute_package_rating") as mock_rate:

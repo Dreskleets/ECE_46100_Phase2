@@ -24,10 +24,9 @@ This is not perfect, but matches the intent and is explainable in your report.
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Iterable, Tuple
-
 
 # Extensions that are clearly *not* code and should be excluded.
 WEIGHT_EXTENSIONS = {
@@ -53,7 +52,7 @@ class ReviewednessResult:
     score: float  # in [0, 1], or -1.0 for "no repo / no code"
     total_code_lines: int
     reviewed_code_lines: int
-    repo_path: Optional[Path] = None
+    repo_path: Path | None = None
     reason: str = ""
 
 
@@ -63,8 +62,7 @@ def _run_git(repo_path: Path, args: Iterable[str]) -> str:
     proc = subprocess.run(
         cmd,
         cwd=repo_path,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         check=True,
     )
@@ -96,7 +94,7 @@ def _get_main_branch(repo_path: Path) -> str:
 
 def _iter_commits_with_messages(
     repo_path: Path, branch: str
-) -> Iterable[Tuple[str, str]]:
+) -> Iterable[tuple[str, str]]:
     """
     Yield (commit_hash, commit_message) for all commits reachable from branch.
     """
@@ -135,7 +133,7 @@ def _is_code_file(path: str) -> bool:
     return True
 
 
-def _count_loc_for_commit(repo_path: Path, commit_hash: str) -> Tuple[int, int]:
+def _count_loc_for_commit(repo_path: Path, commit_hash: str) -> tuple[int, int]:
     """
     Return (total_code_loc, reviewed_code_loc) for a single commit.
 
@@ -170,7 +168,7 @@ def _count_loc_for_commit(repo_path: Path, commit_hash: str) -> Tuple[int, int]:
 
 
 def compute_reviewedness(
-    repo_path: Optional[str | Path],
+    repo_path: str | Path | None,
 ) -> ReviewednessResult:
     """
     Compute the reviewedness metric for a local git repository.

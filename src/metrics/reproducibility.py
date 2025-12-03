@@ -28,8 +28,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Literal
-
+from typing import Literal
 
 ReproducibilityLabel = Literal["none", "agent", "native", "unknown"]
 
@@ -39,8 +38,8 @@ class ReproducibilityResult:
     score: float  # 0.0, 0.5, 1.0, or -1.0 for "unknown"
     label: ReproducibilityLabel
     reason: str
-    runtime_seconds: Optional[float] = None
-    command: Optional[str] = None
+    runtime_seconds: float | None = None
+    command: str | None = None
 
 
 def score_from_label(label: ReproducibilityLabel) -> float:
@@ -69,7 +68,7 @@ def compute_reproducibility_from_label(label: ReproducibilityLabel) -> Reproduci
     )
 
 
-def _find_demo_script(model_dir: Path) -> Optional[Path]:
+def _find_demo_script(model_dir: Path) -> Path | None:
     """
     Heuristic: look for a 'demo' / 'inference' script inside the model directory.
 
@@ -91,7 +90,7 @@ def _find_demo_script(model_dir: Path) -> Optional[Path]:
 
 def compute_reproducibility_via_demo(
     model_dir: str | Path,
-    demo_entry_point: Optional[str] = None,
+    demo_entry_point: str | None = None,
     timeout_seconds: int = 120,
 ) -> ReproducibilityResult:
     """
@@ -171,8 +170,8 @@ def compute_reproducibility_via_demo(
 # Convenience alias for your net_score import:
 def compute_reproducibility(
     model_dir: str | Path,
-    manual_label: Optional[ReproducibilityLabel] = None,
-    demo_entry_point: Optional[str] = None,
+    manual_label: ReproducibilityLabel | None = None,
+    demo_entry_point: str | None = None,
     timeout_seconds: int = 120,
 ) -> ReproducibilityResult:
     """
@@ -202,4 +201,5 @@ if __name__ == "__main__":
     parser.add_argument("--timeout", type=int, default=120)
     args = parser.parse_args()
 
-    res = compute_reproducibility(args.model_dir, demo_entry_point=args.demo, timeout_seconds=args.timeo_
+    res = compute_reproducibility(args.model_dir, demo_entry_point=args.demo, timeout_seconds=args.timeout)
+    print(res)

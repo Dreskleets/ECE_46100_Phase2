@@ -21,8 +21,8 @@ Behavior:
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Mapping, Sequence, List
 
 
 @dataclass
@@ -30,7 +30,7 @@ class TreescoreResult:
     score: float  # in [0, 1] or -1.0 if no parents / no data
     num_parents: int  # total parents listed
     num_scored_parents: int  # how many had known scores
-    missing_parents: List[str]
+    missing_parents: list[str]
 
 
 def compute_treescore(
@@ -59,7 +59,7 @@ def compute_treescore(
         )
 
     scored_values = []
-    missing: List[str] = []
+    missing: list[str] = []
 
     for pid in parent_ids:
         if (
