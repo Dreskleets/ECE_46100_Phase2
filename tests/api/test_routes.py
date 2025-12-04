@@ -96,6 +96,7 @@ def test_upload_package():
     # Test uploading a package via Content (Base64)
     client.delete("/reset")
     from unittest.mock import patch
+
     from src.api.models import PackageRating
     
     with patch("src.api.routes.compute_package_rating") as mock_rate:
@@ -146,6 +147,7 @@ def test_search_by_regex():
     client.delete("/reset")
     # Ingest one
     from unittest.mock import patch
+
     from src.api.models import PackageRating
     with patch("src.api.routes.compute_package_rating") as mock_rate:
          mock_rate.return_value = PackageRating(

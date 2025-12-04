@@ -1,13 +1,13 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
+
 from src.metrics.reproducibility import (
-    score_from_label,
+    _find_demo_script,
+    compute_reproducibility,
     compute_reproducibility_from_label,
     compute_reproducibility_via_demo,
-    compute_reproducibility,
-    _find_demo_script
+    score_from_label,
 )
+
 
 def test_score_from_label():
     assert score_from_label("none") == 0.0

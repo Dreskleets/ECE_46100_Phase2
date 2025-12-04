@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from src.services.metrics_service import compute_package_rating, classify_url, load_metrics
+from unittest.mock import MagicMock
+
 from src.api.models import PackageRating
+from src.services.metrics_service import classify_url, compute_package_rating, load_metrics
+
 
 def test_classify_url():
     assert classify_url("https://github.com/user/repo") == "CODE"
@@ -40,7 +41,7 @@ def test_compute_package_rating_github(mocker):
     mocker.patch("shutil.rmtree")
     
     # Mock load_metrics to return a controlled set
-    mock_metric = lambda r: (0.5, 5.0)
+    def mock_metric(r): return (0.5, 5.0)
     mocker.patch("src.services.metrics_service.load_metrics", return_value={
         "bus_factor": mock_metric,
         "code_quality": mock_metric,
@@ -72,7 +73,7 @@ def test_compute_package_rating_huggingface(mocker):
     mocker.patch("shutil.rmtree")
     
     # Mock load_metrics
-    mock_metric = lambda r: (0.5, 5.0)
+    def mock_metric(r): return (0.5, 5.0)
     mocker.patch("src.services.metrics_service.load_metrics", return_value={"net_score": mock_metric})
     
     # Mock extra metrics to fail (cover exception paths)

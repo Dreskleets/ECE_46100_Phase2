@@ -1,4 +1,3 @@
-import logging
 
 from src.utils.github_link_finder import find_github_url_from_hf
 
