@@ -167,9 +167,11 @@ class S3Storage:
 
 def get_storage():
     storage_type = os.environ.get("STORAGE_TYPE", "LOCAL").upper()
+    print(f"DEBUG: Initializing storage. Type: {storage_type}")
     if storage_type == "S3":
         bucket = os.environ.get("BUCKET_NAME", "ece46100-registry")
         region = os.environ.get("AWS_REGION", "us-east-1")
+        print(f"DEBUG: S3 Bucket: {bucket}, Region: {region}")
         return S3Storage(bucket, region)
     return LocalStorage()
 
