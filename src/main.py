@@ -4,7 +4,7 @@ from mangum import Mangum
 
 from src.api.routes import router
 
-app = FastAPI(title="Trustworthy Model Registry", version="1.0.0")
+app = FastAPI(title="Trustworthy Model Registry", version="1.0.0", root_path="/default")
 
 # CORS
 app.add_middleware(
