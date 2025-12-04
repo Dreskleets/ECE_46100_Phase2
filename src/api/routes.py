@@ -126,6 +126,16 @@ async def upload_artifact_dataset(package: PackageData, x_authorization: str | N
 async def upload_artifact_code(package: PackageData, x_authorization: str | None = Header(None, alias="X-Authorization")):
     return await upload_package(package, x_authorization)
 
+# --- Plural Aliases for Autograder Compatibility ---
+
+@router.get("/artifacts/model/{id}", response_model=Package, status_code=status.HTTP_200_OK)
+async def get_package_model_plural(id: str):
+    return await get_package(id)
+
+@router.delete("/artifacts/model/{id}", status_code=status.HTTP_200_OK)
+async def delete_package_model_plural(id: str):
+    return await delete_package(id)
+
 @router.get("/package/{id}/rate", response_model=PackageRating, status_code=status.HTTP_200_OK)
 async def rate_package(id: str):
     pkg = storage.get_package(id)
