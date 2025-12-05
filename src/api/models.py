@@ -20,26 +20,27 @@ class Package(BaseModel):
     data: PackageData
 
 class PackageRating(BaseModel):
-    BusFactor: float
-    BusFactorLatency: float
-    Correctness: float
-    CorrectnessLatency: float
-    RampUp: float
-    RampUpLatency: float
-    ResponsiveMaintainer: float
-    ResponsiveMaintainerLatency: float
-    LicenseScore: float
-    LicenseScoreLatency: float
-    GoodPinningPractice: float
-    GoodPinningPracticeLatency: float
-    PullRequest: float
-    PullRequestLatency: float
-    NetScore: float
-    NetScoreLatency: float
-    TreeScore: float
-    TreeScoreLatency: float
-    Reproducibility: float
-    ReproducibilityLatency: float
+    busFactor: float
+    busFactorLatency: float
+    correctness: float
+    correctnessLatency: float
+    rampUp: float
+    rampUpLatency: float
+    responsiveMaintainer: float
+    responsiveMaintainerLatency: float
+    licenseScore: float
+    licenseScoreLatency: float
+    goodPinningPractice: float
+    goodPinningPracticeLatency: float
+    pullRequest: float
+    pullRequestLatency: float
+    netScore: float
+    netScoreLatency: float
+    treeScore: float
+    treeScoreLatency: float
+    reproducibility: float
+    reproducibilityLatency: float
+    name: str | None = None
 
 class PackageHistoryEntry(BaseModel):
     User: dict
