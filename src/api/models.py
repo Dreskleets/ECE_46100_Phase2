@@ -4,21 +4,15 @@ from pydantic import BaseModel, Field
 # --- Package Models ---
 
 class PackageMetadata(BaseModel):
-    Name: str = Field(..., description="Package name", alias="name")
-    Version: str = Field(..., description="Package version", alias="version")
-    ID: str = Field(..., description="Package ID", alias="id")
-
-    class Config:
-        populate_by_name = True
+    name: str = Field(..., description="Package name")
+    version: str = Field(..., description="Package version")
+    id: str = Field(..., description="Package ID")
 
 class PackageData(BaseModel):
-    Content: str | None = Field(None, description="Base64 encoded zip file content", alias="content")
-    URL: str | None = Field(None, description="Package URL (for ingest)", alias="url")
-    JSProgram: str | None = Field(None, description="JavaScript program for sensitive modules", alias="jsprogram")
-    Name: str | None = Field(None, description="Package name (optional)", alias="name")
-
-    class Config:
-        populate_by_name = True
+    content: str | None = Field(None, description="Base64 encoded zip file content")
+    url: str | None = Field(None, description="Package URL (for ingest)")
+    jsprogram: str | None = Field(None, description="JavaScript program for sensitive modules")
+    name: str | None = Field(None, description="Package name (optional)")
 
 class Package(BaseModel):
     metadata: PackageMetadata
@@ -53,12 +47,9 @@ class PackageHistoryEntry(BaseModel):
     Action: str
 
 class PackageQuery(BaseModel):
-    Name: str = Field(..., description="Package name", alias="name")
-    Version: str | None = Field(None, description="Package version", alias="version")
-    Types: list[str] | None = Field(None, description="Package types", alias="types")
-
-    class Config:
-        populate_by_name = True
+    name: str = Field(..., description="Package name")
+    version: str | None = Field(None, description="Package version")
+    types: list[str] | None = Field(None, description="Package types")
 
 class PackageRegEx(BaseModel):
     RegEx: str = Field(..., description="Regex for searching packages")

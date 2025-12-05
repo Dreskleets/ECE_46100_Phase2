@@ -9,14 +9,14 @@ from src.services.storage import LocalStorage
 def sample_package():
     return Package(
         metadata=PackageMetadata(
-            Name="test-package",
-            Version="1.0.0",
-            ID="test-id"
+            name="test-package",
+            version="1.0.0",
+            id="test-id"
         ),
         data=PackageData(
-            Content="base64content",
-            URL="https://github.com/test/repo",
-            JSProgram="console.log('test')"
+            content="base64content",
+            url="https://github.com/test/repo",
+            jsprogram="console.log('test')"
         )
     )
 
@@ -35,7 +35,7 @@ def test_local_storage(sample_package):
     # Test List
     pkgs = storage.list_packages()
     assert len(pkgs) == 1
-    assert pkgs[0].Name == "test-package"
+    assert pkgs[0].name == "test-package"
     
     # Test Delete
     storage.delete_package("test-id")

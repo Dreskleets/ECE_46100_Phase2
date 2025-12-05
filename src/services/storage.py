@@ -10,8 +10,8 @@ class LocalStorage:
         self.packages: dict[str, Package] = {}
 
     def add_package(self, package: Package) -> None:
-        print(f"DEBUG: LocalStorage add_package {package.metadata.ID}")
-        self.packages[package.metadata.ID] = package
+        print(f"DEBUG: LocalStorage add_package {package.metadata.id}")
+        self.packages[package.metadata.id] = package
 
     def get_package(self, package_id: str) -> Package | None:
         return self.packages.get(package_id)
@@ -43,7 +43,7 @@ class LocalStorage:
         
         matches = []
         for pkg in self.packages.values():
-            if pattern.search(pkg.metadata.Name) or pattern.search(pkg.data.Content or ""): # Search in Name or Content
+            if pattern.search(pkg.metadata.name) or pattern.search(pkg.data.content or ""): # Search in Name or Content
                  matches.append(pkg.metadata)
         return matches
 
@@ -61,21 +61,21 @@ class S3Storage:
         return f"{self.prefix}{package_id}/{kind}.{ext}"
 
     def add_package(self, package: Package) -> None:
-        print(f"DEBUG: S3 add_package {package.metadata.ID}")
+        print(f"DEBUG: S3 add_package {package.metadata.id}")
         # Store metadata
         self.s3.put_object(
             Bucket=self.bucket,
-            Key=self._get_key(package.metadata.ID, "metadata"),
+            Key=self._get_key(package.metadata.id, "metadata"),
             Body=package.metadata.model_dump_json()
         )
         # Store content if exists
-        if package.data.Content:
+        if package.data.content:
             import base64
             try:
-                binary_data = base64.b64decode(package.data.Content)
+                binary_data = base64.b64decode(package.data.content)
                 self.s3.put_object(
                     Bucket=self.bucket,
-                    Key=self._get_key(package.metadata.ID, "content"),
+                    Key=self._get_key(package.metadata.id, "content"),
                     Body=binary_data
                 )
             except Exception as e:
@@ -84,7 +84,7 @@ class S3Storage:
         
         self.s3.put_object(
             Bucket=self.bucket,
-            Key=self._get_key(package.metadata.ID, "full"),
+            Key=self._get_key(package.metadata.id, "full"),
             Body=package.model_dump_json()
         )
 
