@@ -41,6 +41,7 @@ class PackageRating(BaseModel):
     reproducibility: float
     reproducibilityLatency: float
     name: str | None = None
+    category: str | None = None
 
 class PackageHistoryEntry(BaseModel):
     User: dict

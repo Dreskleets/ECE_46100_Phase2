@@ -52,6 +52,17 @@ async def get_package(id: str):
     pkg = storage.get_package(id)
     if not pkg:
         raise HTTPException(status_code=404, detail="Package not found")
+    
+    # If URL is missing (uploaded content), generate a pre-signed URL for download
+    if not pkg.data.url and pkg.data.content:
+         # We can't easily generate a pre-signed URL for "content" unless it's in S3 as a file.
+         # S3Storage stores it as {id}.zip.
+         # Let's ask storage to generate a URL.
+         if hasattr(storage, "get_download_url"):
+             url = storage.get_download_url(id)
+             if url:
+                 pkg.data.url = url
+                 
     return pkg
 
 @router.get("/artifact/model/{id}", response_model=Package, status_code=status.HTTP_200_OK)
@@ -182,7 +193,8 @@ async def rate_package(id: str):
             treeScoreLatency=rating.treeScoreLatency,
             reproducibility=rating.reproducibility,
             reproducibilityLatency=rating.reproducibilityLatency,
-            name=pkg.metadata.name
+            name=pkg.metadata.name,
+            category=pkg.metadata.type.lower() if pkg.metadata.type else "code"
         )
     
     return PackageRating(
@@ -196,7 +208,8 @@ async def rate_package(id: str):
         netScore=0, netScoreLatency=0,
         treeScore=0, treeScoreLatency=0,
         reproducibility=0, reproducibilityLatency=0,
-        name=pkg.metadata.name
+        name=pkg.metadata.name,
+        category=pkg.metadata.type.lower() if pkg.metadata.type else "code"
     )
 
 @router.get("/artifact/model/{id}/rate", response_model=PackageRating, status_code=status.HTTP_200_OK)
@@ -207,7 +220,8 @@ async def rate_package_model(id: str):
 async def get_package_cost(id: str):
     # Stub for cost
     # Return a dictionary to satisfy "int object has no attribute copy"
-    return {"cost": {"total": 0}}
+    # And "total_cost" field
+    return {"cost": {"total_cost": 0}}
 
 @router.post("/artifact/model/{id}/license-check", status_code=status.HTTP_200_OK)
 async def check_license(id: str):

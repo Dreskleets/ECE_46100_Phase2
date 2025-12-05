@@ -66,13 +66,17 @@ class LocalStorage:
         try:
             pattern = re.compile(regex)
         except re.error:
-            return [] # Or raise error
+            return []
         
         matches = []
         for pkg in self.packages.values():
-            if pattern.search(pkg.metadata.name) or pattern.search(pkg.data.content or ""): # Search in Name or Content
-                 matches.append(pkg.metadata)
+            # Search in name and readme
+            if pattern.search(pkg.metadata.name) or pattern.search(pkg.data.readme or ""):
+                matches.append(pkg.metadata)
         return matches
+
+    def get_download_url(self, id: str) -> str | None:
+        return None
 
 class S3Storage:
     def __init__(self, bucket_name: str, region: str):
@@ -103,6 +107,12 @@ class S3Storage:
                 self.s3.put_object(
                     Bucket=self.bucket,
                     Key=self._get_key(package.metadata.id, "content"),
+                    Body=binary_data
+                )
+                # Also store with package_id.zip name for direct download
+                self.s3.put_object(
+                    Bucket=self.bucket,
+                    Key=f"{self.prefix}{package.metadata.id}/{package.metadata.id}.zip",
                     Body=binary_data
                 )
             except Exception as e:
