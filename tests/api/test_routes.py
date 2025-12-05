@@ -53,6 +53,7 @@ def test_ingest_package():
         pkg = storage.get_package(data["metadata"]["id"])
         assert pkg is not None
         assert pkg.data.url == "https://github.com/test/repo"
+        assert data["metadata"]["type"] == "Code" # Default for /package
 
 def test_rate_package():
     # Setup
@@ -126,6 +127,7 @@ def test_upload_package():
         # Verify storage
         pkg = storage.get_package(data["metadata"]["id"])
         assert pkg.data.content == payload["content"]
+        assert data["metadata"]["type"] == "Code"
 
 def test_delete_package_not_found():
     client.delete("/reset")
@@ -186,3 +188,19 @@ def test_rate_package_no_url():
     data = response.json()
     # Expect all 0s
     assert data["NetScore"] == 0
+
+def test_upload_model():
+    client.delete("/reset")
+    
+    # Mock compute_package_rating if needed (though upload path might not use it if content is provided)
+    # But wait, upload_package calls compute_package_rating only for ingest (URL).
+    # If we upload content, it doesn't call it.
+    
+    payload = {
+        "content": "UEsDBAoAAAAAA...", 
+        "jsprogram": "console.log('test')"
+    }
+    response = client.post("/artifact/model", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["metadata"]["type"] == "Model"
