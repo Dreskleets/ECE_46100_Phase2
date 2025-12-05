@@ -40,8 +40,8 @@ def test_ingest_package():
         )
         
         payload = {
-            "URL": "https://github.com/test/repo",
-            "JSProgram": "console.log('test')"
+            "url": "https://github.com/test/repo",
+            "jsprogram": "console.log('test')"
         }
         response = client.post("/package", json=payload)
         assert response.status_code == 201
@@ -52,7 +52,7 @@ def test_ingest_package():
         # Verify it's in storage
         pkg = storage.get_package(data["metadata"]["id"])
         assert pkg is not None
-        assert pkg.data.URL == "https://github.com/test/repo"
+        assert pkg.data.url == "https://github.com/test/repo"
 
 def test_rate_package():
     # Setup
@@ -76,7 +76,7 @@ def test_rate_package():
         )
         
         # Ingest first
-        payload = {"URL": "https://github.com/test/repo"}
+        payload = {"url": "https://github.com/test/repo"}
         res_ingest = client.post("/package", json=payload)
         pkg_id = res_ingest.json()["metadata"]["id"]
         
@@ -114,8 +114,8 @@ def test_upload_package():
         )
         
         payload = {
-            "Content": "UEsDBAoAAAAAA...", # Dummy zip content
-            "JSProgram": "console.log('test')"
+            "content": "UEsDBAoAAAAAA...", # Dummy zip content
+            "jsprogram": "console.log('test')"
         }
         response = client.post("/package", json=payload)
         assert response.status_code == 201
@@ -125,7 +125,7 @@ def test_upload_package():
         
         # Verify storage
         pkg = storage.get_package(data["metadata"]["id"])
-        assert pkg.data.Content == payload["Content"]
+        assert pkg.data.content == payload["content"]
 
 def test_delete_package_not_found():
     client.delete("/reset")
@@ -134,7 +134,7 @@ def test_delete_package_not_found():
 
 def test_update_package():
     # Not implemented yet
-    response = client.put("/package/123", json={"metadata": {"Name": "n", "Version": "v", "ID": "i"}, "data": {}})
+    response = client.put("/package/123", json={"metadata": {"name": "n", "version": "v", "id": "i"}, "data": {}})
     assert response.status_code == 501
 
 def test_authenticate():
@@ -157,7 +157,7 @@ def test_search_by_regex():
             PullRequest=1, PullRequestLatency=0, NetScore=1.0, NetScoreLatency=0,
             TreeScore=1.0, TreeScoreLatency=0, Reproducibility=1.0, ReproducibilityLatency=0
          )
-         client.post("/package", json={"URL": "https://github.com/test/regex", "JSProgram": "js"})
+         client.post("/package", json={"url": "https://github.com/test/regex", "jsprogram": "js"})
     
     # Search
     response = client.post("/package/byRegEx", json={"RegEx": "test"})
@@ -171,8 +171,8 @@ def test_rate_package_no_url():
     client.delete("/reset")
     # Upload content-only package
     payload = {
-        "Content": "UEsDBAoAAAAAA...", 
-        "JSProgram": "console.log('test')"
+        "content": "UEsDBAoAAAAAA...", 
+        "jsprogram": "console.log('test')"
     }
     # Mock compute_package_rating to avoid error during ingest (though this is upload)
     # Upload path doesn't call compute_package_rating.
