@@ -199,8 +199,8 @@ async def rate_package(id: str):
             dataset_and_code_score_latency=rating.dataset_and_code_score_latency,
             dataset_quality=rating.dataset_quality,
             dataset_quality_latency=rating.dataset_quality_latency,
-            size=rating.size,
-            size_latency=rating.size_latency,
+            size_score=rating.size_score,
+            size_score_latency=rating.size_score_latency,
             name=pkg.metadata.name,
             category=pkg.metadata.type.lower() if pkg.metadata.type else "code"
         )
@@ -219,7 +219,7 @@ async def rate_package(id: str):
         performance_claims=0, performance_claims_latency=0,
         dataset_and_code_score=0, dataset_and_code_score_latency=0,
         dataset_quality=0, dataset_quality_latency=0,
-        size=0, size_latency=0,
+        size_score=0, size_score_latency=0,
         name=pkg.metadata.name,
         category=pkg.metadata.type.lower() if pkg.metadata.type else "code"
     )

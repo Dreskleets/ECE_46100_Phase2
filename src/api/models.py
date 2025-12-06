@@ -46,8 +46,8 @@ class PackageRating(BaseModel):
     dataset_and_code_score_latency: float
     dataset_quality: float
     dataset_quality_latency: float
-    size: float
-    size_latency: float
+    size_score: float
+    size_score_latency: float
     name: str | None = None
     category: str | None = None
 

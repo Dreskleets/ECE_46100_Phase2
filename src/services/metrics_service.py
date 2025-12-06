@@ -109,7 +109,7 @@ def compute_package_rating(url: str) -> PackageRating:
             performance_claims=0.6, performance_claims_latency=0,
             dataset_and_code_score=0.6, dataset_and_code_score_latency=0,
             dataset_quality=0.6, dataset_quality_latency=0,
-            size=0.6, size_latency=0
+            size_score=0.6, size_score_latency=0
         )
 
     metrics = load_metrics()
@@ -242,6 +242,6 @@ def compute_package_rating(url: str) -> PackageRating:
         dataset_and_code_score_latency=get_res("dataset_and_code_score")[1],
         dataset_quality=get_res("dataset_quality")[0],
         dataset_quality_latency=get_res("dataset_quality")[1],
-        size=get_res("size")[0],
-        size_latency=get_res("size")[1]
+        size_score=get_res("size")[0],
+        size_score_latency=get_res("size")[1]
     )
