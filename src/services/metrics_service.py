@@ -7,7 +7,7 @@ import stat
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 
-from src.api.models import PackageRating, MetricScore
+from src.api.models import PackageRating, MetricScore, SizeScore
 from src.utils.logging import logger
 
 # Re-using logic from run.py (adapted)
@@ -109,7 +109,7 @@ def compute_package_rating(url: str) -> PackageRating:
             performance_claims=MetricScore(score=0.6, latency=0), performance_claims_latency=0,
             dataset_and_code_score=MetricScore(score=0.6, latency=0), dataset_and_code_score_latency=0,
             dataset_quality=MetricScore(score=0.6, latency=0), dataset_quality_latency=0,
-            size_score=MetricScore(score=0.6, latency=0), size_score_latency=0
+            size_score=SizeScore(raspberry_pi=0.6, jetson_nano=0.6, desktop_pc=0.6, aws_server=0.6), size_score_latency=0
         )
 
     metrics = load_metrics()
@@ -242,6 +242,11 @@ def compute_package_rating(url: str) -> PackageRating:
         dataset_and_code_score_latency=get_res("dataset_and_code_score")[1],
         dataset_quality=MetricScore(score=get_res("dataset_quality")[0], latency=get_res("dataset_quality")[1]),
         dataset_quality_latency=get_res("dataset_quality")[1],
-        size_score=MetricScore(score=get_res("size")[0], latency=get_res("size")[1]),
+        size_score=SizeScore(
+            raspberry_pi=get_res("size")[0],
+            jetson_nano=get_res("size")[0],
+            desktop_pc=get_res("size")[0],
+            aws_server=get_res("size")[0]
+        ),
         size_score_latency=get_res("size")[1]
     )

@@ -23,6 +23,12 @@ class MetricScore(BaseModel):
     score: float
     latency: float
 
+class SizeScore(BaseModel):
+    raspberry_pi: float
+    jetson_nano: float
+    desktop_pc: float
+    aws_server: float
+
 class PackageRating(BaseModel):
     bus_factor: MetricScore
     bus_factor_latency: float
@@ -50,7 +56,7 @@ class PackageRating(BaseModel):
     dataset_and_code_score_latency: float
     dataset_quality: MetricScore
     dataset_quality_latency: float
-    size_score: MetricScore
+    size_score: SizeScore
     size_score_latency: float
     name: str | None = None
     category: str | None = None

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from src.main import app
-from src.api.models import MetricScore
+from src.api.models import MetricScore, SizeScore
 from src.services.storage import storage
 
 client = TestClient(app)
@@ -41,7 +41,7 @@ def test_ingest_package():
             performance_claims=MetricScore(score=1.0, latency=0), performance_claims_latency=0,
             dataset_and_code_score=MetricScore(score=1.0, latency=0), dataset_and_code_score_latency=0,
             dataset_quality=MetricScore(score=1.0, latency=0), dataset_quality_latency=0,
-            size_score=MetricScore(score=1.0, latency=0), size_score_latency=0
+            size_score=SizeScore(raspberry_pi=1.0, jetson_nano=1.0, desktop_pc=1.0, aws_server=1.0), size_score_latency=0
         )
         
         payload = {
@@ -82,7 +82,7 @@ def test_rate_package():
             performance_claims=MetricScore(score=0.5, latency=10), performance_claims_latency=10,
             dataset_and_code_score=MetricScore(score=0.5, latency=10), dataset_and_code_score_latency=10,
             dataset_quality=MetricScore(score=0.5, latency=10), dataset_quality_latency=10,
-            size_score=MetricScore(score=0.5, latency=10), size_score_latency=10
+            size_score=SizeScore(raspberry_pi=0.5, jetson_nano=0.5, desktop_pc=0.5, aws_server=0.5), size_score_latency=10
         )
         
         # Ingest first
@@ -117,7 +117,7 @@ def test_get_packages_empty():
             performance_claims=MetricScore(score=1.0, latency=0), performance_claims_latency=0,
             dataset_and_code_score=MetricScore(score=1.0, latency=0), dataset_and_code_score_latency=0,
             dataset_quality=MetricScore(score=1.0, latency=0), dataset_quality_latency=0,
-            size_score=MetricScore(score=1.0, latency=0), size_score_latency=0
+            size_score=SizeScore(raspberry_pi=1.0, jetson_nano=1.0, desktop_pc=1.0, aws_server=1.0), size_score_latency=0
         )
         for i in range(15):
             client.post("/package", json={"url": f"https://github.com/test/repo{i}", "jsprogram": "js"})
@@ -203,7 +203,7 @@ def test_upload_package():
             performance_claims=MetricScore(score=1.0, latency=0), performance_claims_latency=0,
             dataset_and_code_score=MetricScore(score=1.0, latency=0), dataset_and_code_score_latency=0,
             dataset_quality=MetricScore(score=1.0, latency=0), dataset_quality_latency=0,
-            size_score=MetricScore(score=1.0, latency=0), size_score_latency=0
+            size_score=SizeScore(raspberry_pi=1.0, jetson_nano=1.0, desktop_pc=1.0, aws_server=1.0), size_score_latency=0
         )
         
         payload = {
@@ -258,7 +258,7 @@ def test_search_by_regex():
             performance_claims=MetricScore(score=0.5, latency=0), performance_claims_latency=0,
             dataset_and_code_score=MetricScore(score=0.5, latency=0), dataset_and_code_score_latency=0,
             dataset_quality=MetricScore(score=0.5, latency=0), dataset_quality_latency=0,
-            size_score=MetricScore(score=0.5, latency=0), size_score_latency=0
+            size_score=SizeScore(raspberry_pi=0.5, jetson_nano=0.5, desktop_pc=0.5, aws_server=0.5), size_score_latency=0
          )
          client.post("/package", json={"url": "https://github.com/test/regex", "jsprogram": "js"})
     
