@@ -5,6 +5,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, status
 from src.api.models import (
     AuthenticationRequest,
     MetricScore,
+    SizeScore,
     Package,
     PackageData,
     PackageHistoryEntry,
@@ -220,7 +221,7 @@ async def rate_package(id: str):
         performance_claims=MetricScore(score=0, latency=0), performance_claims_latency=0,
         dataset_and_code_score=MetricScore(score=0, latency=0), dataset_and_code_score_latency=0,
         dataset_quality=MetricScore(score=0, latency=0), dataset_quality_latency=0,
-        size_score=MetricScore(score=0, latency=0), size_score_latency=0,
+        size_score=SizeScore(raspberry_pi=0, jetson_nano=0, desktop_pc=0, aws_server=0), size_score_latency=0,
         name=pkg.metadata.name,
         category=pkg.metadata.type.lower() if pkg.metadata.type else "code"
     )
