@@ -14,6 +14,7 @@ class PackageData(BaseModel):
     url: str | None = Field(None, description="Package URL (for ingest)")
     jsprogram: str | None = Field(None, description="JavaScript program for sensitive modules")
     name: str | None = Field(None, description="Package name (optional)")
+    readme: str | None = Field(None, description="Package README content (optional)")
 
 class Package(BaseModel):
     metadata: PackageMetadata
@@ -73,7 +74,9 @@ class PackageQuery(BaseModel):
     types: list[str] | None = Field(None, description="Package types")
 
 class PackageRegEx(BaseModel):
-    RegEx: str = Field(..., description="Regex for searching packages")
+    RegEx: str = Field(..., alias="regex", description="Regex for searching packages")
+    
+    model_config = {"populate_by_name": True}
 
 # --- User/Auth Models ---
 

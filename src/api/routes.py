@@ -235,7 +235,11 @@ async def get_package_cost(id: str):
     # Stub for cost
     # Return a dictionary to satisfy "int object has no attribute copy"
     # And "total_cost" field
-    return {"cost": {"total_cost": 0}}
+    return {"cost": {"total_cost": 0.0}}
+
+@router.get("/package/{id}/cost", status_code=status.HTTP_200_OK)
+async def get_package_cost_alias(id: str):
+    return await get_package_cost(id)
 
 @router.post("/artifact/model/{id}/license-check", status_code=status.HTTP_200_OK)
 async def check_license(id: str):
@@ -245,7 +249,11 @@ async def check_license(id: str):
 @router.get("/artifact/model/{id}/lineage", status_code=status.HTTP_200_OK)
 async def get_lineage(id: str):
     # Stub for lineage
-    return {"lineage": []}
+    return {"lineage": [], "nodes": [], "edges": []}
+
+@router.get("/package/{id}/lineage", status_code=status.HTTP_200_OK)
+async def get_lineage_alias(id: str):
+    return await get_lineage(id)
 
 @router.get("/artifact/model/lineage", status_code=status.HTTP_200_OK)
 async def get_global_lineage():
