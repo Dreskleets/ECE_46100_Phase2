@@ -104,7 +104,8 @@ async def upload_package(package: PackageData, x_authorization: str | None = Hea
         # Extract name from URL or use provided name
         name = package.name if package.name else package.url
         if not package.name and "github.com" in package.url:
-             name = package.url.split("github.com/")[-1]
+             # Use repo name only (not owner/repo) to match autograder expectations
+             name = package.url.rstrip("/").split("/")[-1]
         
         metadata = PackageMetadata(name=name, version="1.0.0", id=pkg_id, type=package_type)
         new_pkg = Package(metadata=metadata, data=package)
@@ -164,6 +165,34 @@ async def get_package_code_plural(id: str):
 @router.delete("/artifacts/code/{id}", status_code=status.HTTP_200_OK)
 async def delete_package_code_plural(id: str):
     return await delete_package(id)
+
+# --- List Routes for Autograder ---
+
+@router.get("/artifacts/code", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
+async def list_packages_code():
+    return storage.list_packages(queries=[PackageQuery(name="*", version=None, types=["code"])])
+
+@router.get("/artifacts/dataset", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
+async def list_packages_dataset():
+    return storage.list_packages(queries=[PackageQuery(name="*", version=None, types=["dataset"])])
+
+@router.get("/artifacts/model", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
+async def list_packages_model():
+    return storage.list_packages(queries=[PackageQuery(name="*", version=None, types=["model"])])
+
+# --- List Routes for Autograder ---
+
+@router.get("/artifacts/code", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
+async def list_packages_code():
+    return storage.list_packages(queries=[PackageQuery(name="*", version=None, types=["code"])])
+
+@router.get("/artifacts/dataset", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
+async def list_packages_dataset():
+    return storage.list_packages(queries=[PackageQuery(name="*", version=None, types=["dataset"])])
+
+@router.get("/artifacts/model", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
+async def list_packages_model():
+    return storage.list_packages(queries=[PackageQuery(name="*", version=None, types=["model"])])
 
 @router.get("/package/{id}/rate", response_model=PackageRating, status_code=status.HTTP_200_OK)
 async def rate_package(id: str):
