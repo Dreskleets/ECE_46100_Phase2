@@ -52,24 +52,53 @@ def download_repo_zip(repo_url: str) -> str:
             if response.status_code == 200:
                 break
         except Exception:
-            continue
-    else:
-        # If loop finishes without break
-        raise Exception(f"Could not download zip from {url} (tried HEAD, main, master)")
-
-    response.raise_for_status()
+    try:
+        # Normalize URL
+        url = repo_url.rstrip("/")
+        if url.endswith(".git"):
+            url = url[:-4]
         
+        # Construct zip URL (assuming GitHub for now)
+        # Try HEAD first, then main, then master
+        branches = ["HEAD", "main", "master"]
+        
+        headers = {}
+        token = os.environ.get("GITHUB_TOKEN")
+        if token and not token.startswith("ghp_REPLACE"):
+            headers["Authorization"] = f"token {token}"
+        
+        response = None # Initialize response
+        for branch in branches:
+            zip_url = f"{url}/archive/refs/heads/{branch}.zip"
+            if branch == "HEAD":
+                 zip_url = f"{url}/archive/HEAD.zip"
+                
+            logger.info(f"Attempting to download zip from {zip_url}")
+            
+            try:
+                response = requests.get(zip_url, headers=headers, stream=True, timeout=30)
+                if response.status_code == 200:
+                    break
+            except Exception:
+                continue
+        else:
+            # If loop finishes without break
+            raise Exception(f"Could not download zip from {url} (tried HEAD, main, master)")
+
+        response.raise_for_status()
+            
         temp_dir = tempfile.mkdtemp()
         with zipfile.ZipFile(io.BytesIO(response.content)) as z:
             z.extractall(temp_dir)
-            
+                
         # The zip usually contains a top-level directory (e.g., repo-main)
         # We want to return the path to that directory, or the temp_dir if flat
         entries = os.listdir(temp_dir)
         if len(entries) == 1 and os.path.isdir(os.path.join(temp_dir, entries[0])):
             return os.path.join(temp_dir, entries[0])
-        return temp_dir
         
+        return temp_dir
+            
     except Exception as e:
         logger.error(f"Failed to download zip: {e}")
         raise e
