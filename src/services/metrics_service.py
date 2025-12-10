@@ -87,38 +87,15 @@ def compute_package_rating(url: str) -> PackageRating:
             print(f"DEBUG: Cloning failed: {e}")
             cloned_path = None
 
-    # If cloning failed or returned empty (due to missing git), return default passing score
-    # This is a fallback for Lambda where git might be missing
-    if not cloned_path or not os.path.exists(cloned_path) or not os.listdir(cloned_path):
-        print("DEBUG: Git missing or clone failed. Returning default passing score.")
-        if cloned_path and os.path.exists(cloned_path):
-            shutil.rmtree(cloned_path)
-            
-        # Return scores that pass ingestion (NetScore >= 0.5)
-        return PackageRating(
-            bus_factor=0.6, bus_factor_latency=0,
-            code_quality=0.6, code_quality_latency=0,
-            ramp_up_time=0.6, ramp_up_time_latency=0,
-            responsive_maintainer=0.6, responsive_maintainer_latency=0,
-            license=0.6, license_latency=0,
-            good_pinning_practice=0.6, good_pinning_practice_latency=0,
-            reviewedness=0.6, reviewedness_latency=0,
-            net_score=0.6, net_score_latency=0,
-            tree_score=0.6, tree_score_latency=0,
-            reproducibility=0.6, reproducibility_latency=0,
-            performance_claims=0.6, performance_claims_latency=0,
-            dataset_and_code_score=0.6, dataset_and_code_score_latency=0,
-            dataset_quality=0.6, dataset_quality_latency=0,
-            size_score=SizeScore(raspberry_pi=0.6, jetson_nano=0.6, desktop_pc=0.6, aws_server=0.6), size_score_latency=0
-        )
-
+    # Don't fail if cloning didn't work - many metrics work without local_path
+    # (HuggingFace models use API, not git cloning)
     metrics = load_metrics()
     results = {}
     
-    for name, func in metrics.items():
+    for name, metric_func in metrics.items():
         try:
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                score, latency = func(resource)
+                score, latency = metric_func(resource)
             results[name] = (float(score), float(latency))
         except Exception:
             results[name] = (0.0, 0.0)
