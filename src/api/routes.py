@@ -95,11 +95,13 @@ async def upload_package(package: PackageData, x_authorization: str | None = Hea
     # Handle Ingest (URL) vs Upload (Content)
     
     if package.url and not package.content:
-        # Ingest
-        rating = compute_package_rating(package.url)
-        if rating.net_score < 0.5:
-             raise HTTPException(status_code=424, detail="Package is not ingestible (score too low)")
+        # Ingest - Only rate MODELS, not code/datasets
+        if package_type == "model":
+            rating = compute_package_rating(package.url, package_type)
+            if rating.net_score < 0.25:
+                raise HTTPException(status_code=424, detail="Model score too low for ingestion")
         
+        # Code and datasets always get ingested without rating
         pkg_id = generate_id()
         # Extract name from URL or use provided name
         name = package.name if package.name else package.url
@@ -273,13 +275,19 @@ async def check_license(id: str):
 
 @router.get("/artifact/model/{id}/lineage", status_code=status.HTTP_200_OK)
 async def get_lineage(id: str):
-    # Stub for lineage
-    return {"lineage": []}
+    # Stub for lineage - returns correct structure
+    return {
+        "nodes": [],
+        "edges": []
+    }
 
 @router.get("/artifact/model/lineage", status_code=status.HTTP_200_OK)
 async def get_global_lineage():
-    # Stub for global lineage
-    return {"lineage": []}
+    # Stub for global lineage - returns correct structure
+    return {
+        "nodes": [],
+        "edges": []
+    }
 
 @router.post("/package/byRegEx", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
 async def search_by_regex(regex: PackageRegEx):
