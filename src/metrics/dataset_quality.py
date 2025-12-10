@@ -46,8 +46,10 @@ def find_dataset_url_from_hf(model_name: str) -> str | None:
     Uses new find_datasets_from_resource internally.
     Returns the first dataset URL if available, else None.
     """
-    resource = {"name": model_name, "url": f"https://huggingface.co/{model_name}"}
-    datasets, _ = find_datasets_from_resource(resource)
+    datasets = []
+    if "github.com" not in model_name:
+        resource = {"name": model_name, "url": f"https://huggingface.co/{model_name}"}
+        datasets, _ = find_datasets_from_resource(resource)
     return datasets[0] if datasets else None
 
 
@@ -56,12 +58,23 @@ def find_dataset_url_from_hf(model_name: str) -> str | None:
 
 def metric(resource: dict[str, Any]) -> tuple[float, int]:
     """
-    Calculates a dataset quality score by finding linked dataset(s)
-    and assessing their metadata on the Hugging Face Hub.
+    Dataset quality metric.
+    
+    For MODELS: Searches README for dataset mentions and scores those datasets
+    For DATASETS: Scores the dataset directly
+    For CODE: Returns 0 (code doesn't have associated datasets)
     """
     start_time = time.perf_counter()
     score = 0.0
 
+    category = resource.get("category", "")
+    
+    # Only CODE artifacts get 0 (they don't reference datasets)
+    if category == "CODE":
+        latency_ms = int((time.perf_counter() - start_time) * 1000)
+        return 0.0, latency_ms
+
+    # For MODELS and DATASETS: search for dataset references
     datasets, _ = find_datasets_from_resource(resource)
 
     if datasets:
@@ -73,3 +86,4 @@ def metric(resource: dict[str, Any]) -> tuple[float, int]:
 
     latency_ms = int((time.perf_counter() - start_time) * 1000)
     return score, latency_ms
+
