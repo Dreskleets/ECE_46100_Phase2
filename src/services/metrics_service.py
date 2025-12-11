@@ -34,6 +34,7 @@ def load_metrics() -> dict[str, Callable]:
     try:
         package = importlib.import_module(metrics_pkg)
     except ModuleNotFoundError:
+        print("DEBUG: Could not import src.metrics package")
         return metrics
 
     for _, mod_name, is_pkg in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
@@ -44,9 +45,17 @@ def load_metrics() -> dict[str, Callable]:
                 module = importlib.import_module(mod_name)
             if hasattr(module, "metric"):
                 metrics[mod_name.split(".")[-1]] = module.metric
-        except Exception:
+                print(f"DEBUG: Loaded metric: {mod_name.split('.')[-1]}")
+            else:
+                print(f"DEBUG: Module {mod_name} has no 'metric' function")
+        except Exception as e:
+            print(f"DEBUG: Failed to load metric {mod_name}: {e}")
             continue
+    print(f"DEBUG: Total metrics loaded: {list(metrics.keys())}")
     return metrics
+
+# Version marker - change this to verify deployment
+CODE_VERSION = "2025-12-10-v3"
 
 def compute_package_rating(url: str) -> PackageRating:
     # 1. Clone if needed (simplified for now, assuming URL is enough or cloning happens here)
