@@ -263,10 +263,42 @@ async def rate_package_model(id: str):
 
 @router.get("/artifact/model/{id}/cost", status_code=status.HTTP_200_OK)
 async def get_package_cost(id: str):
-    # Stub for cost
-    # Return a dictionary to satisfy "int object has no attribute copy"
-    # And "total_cost" field
-    return {"cost": {"total_cost": 0}}
+    """Calculate deployment cost based on model size scores."""
+    # Get the rating which contains size scores
+    rating = await rate_package(id)
+    
+    # Extract size_score from rating
+    size_score = {
+        "raspberry_pi": rating.size_score.raspberry_pi if rating.size_score else 0,
+        "jetson_nano": rating.size_score.jetson_nano if rating.size_score else 0,
+        "desktop_pc": rating.size_score.desktop_pc if rating.size_score else 0,
+        "aws_server": rating.size_score.aws_server if rating.size_score else 0,
+    }
+    
+    # Calculate cost based on inverse of size scores
+    # Larger models (lower scores) cost more
+    # Base costs per hardware type ($/hour)
+    base_costs = {
+        "raspberry_pi": 0.01,  # Very cheap edge device
+        "jetson_nano": 0.05,   # Edge GPU
+        "desktop_pc": 0.25,    # Consumer GPU
+        "aws_server": 1.00,    # Cloud GPU
+    }
+    
+    total_cost = 0.0
+    for hw, base in base_costs.items():
+        score = size_score.get(hw, 0.5)
+        # Cost inversely proportional to score (lower score = higher cost)
+        # If score is 0, assume maximum cost (score=0.1)
+        if score < 0.1:
+            score = 0.1
+        hw_cost = base / score
+        total_cost += hw_cost
+    
+    # Return average cost across hardware types
+    avg_cost = total_cost / len(base_costs)
+    
+    return {"cost": {"total_cost": round(avg_cost, 2)}}
 
 @router.post("/artifact/model/{id}/license-check", status_code=status.HTTP_200_OK)
 async def check_license(id: str):
