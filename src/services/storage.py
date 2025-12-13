@@ -250,29 +250,31 @@ class S3Storage:
         return matches
 
     def get_download_url(self, package_id: str) -> str | None:
-        """Generate a pre-signed URL for downloading package content."""
+        """Generate a download URL for the package per spec."""
         print(f"DEBUG: S3 get_download_url for {package_id}")
         try:
-            # First check if the package exists and has content
+            # First check if the package exists
             pkg = self.get_package(package_id)
             if not pkg:
                 print(f"DEBUG: S3 get_download_url - package not found")
                 return None
             
-            # If package has a URL already, return that
-            if pkg.data.url:
-                print(f"DEBUG: S3 get_download_url - using existing URL: {pkg.data.url}")
-                return pkg.data.url
-            
-            # Generate pre-signed URL for the content file
+            # Try to generate pre-signed URL for stored content
             key = f"{self.prefix}{package_id}/content.zip"
-            url = self.s3.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': self.bucket, 'Key': key},
-                ExpiresIn=3600  # 1 hour
-            )
-            print(f"DEBUG: S3 get_download_url - generated pre-signed URL")
-            return url
+            try:
+                url = self.s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': self.bucket, 'Key': key},
+                    ExpiresIn=3600  # 1 hour
+                )
+                print(f"DEBUG: S3 get_download_url - generated pre-signed URL")
+                return url
+            except Exception:
+                # If content.zip doesn't exist, return original URL
+                if pkg.data.url:
+                    print(f"DEBUG: S3 get_download_url - using original URL: {pkg.data.url}")
+                    return pkg.data.url
+                return None
         except Exception as e:
             print(f"DEBUG: S3 get_download_url error: {e}")
             return None
