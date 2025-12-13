@@ -108,7 +108,7 @@ async def upload_package(package: PackageData, x_authorization: str | None = Hea
              # Use repo name only (not owner/repo) to match autograder expectations
              name = package.url.rstrip("/").split("/")[-1]
         
-        # Fetch README for HuggingFace models (for regex search)
+        # Fetch README from source (for regex search)
         readme_content = ""
         if "huggingface.co" in package.url:
             try:
@@ -117,8 +117,26 @@ async def upload_package(package: PackageData, x_authorization: str | None = Hea
                 readme_path = hf_hub_download(repo_id=model_id, filename="README.md")
                 with open(readme_path, encoding="utf-8") as f:
                     readme_content = f.read()
+                print(f"DEBUG: Fetched HuggingFace README for {model_id}")
             except Exception as e:
-                print(f"DEBUG: Failed to fetch README for {package.url}: {e}")
+                print(f"DEBUG: Failed to fetch HuggingFace README for {package.url}: {e}")
+        elif "github.com" in package.url:
+            try:
+                import requests
+                # Convert github.com URL to raw README URL
+                # e.g. https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/main/README.md
+                parts = package.url.rstrip("/").split("github.com/")[-1].split("/")
+                if len(parts) >= 2:
+                    owner, repo = parts[0], parts[1]
+                    for branch in ["main", "master"]:
+                        raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/README.md"
+                        resp = requests.get(raw_url, timeout=5)
+                        if resp.status_code == 200:
+                            readme_content = resp.text
+                            print(f"DEBUG: Fetched GitHub README for {owner}/{repo}")
+                            break
+            except Exception as e:
+                print(f"DEBUG: Failed to fetch GitHub README for {package.url}: {e}")
         
         metadata = PackageMetadata(name=name, version="1.0.0", id=pkg_id, type=package_type)
         # Store README in package data
