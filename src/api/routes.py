@@ -57,14 +57,12 @@ async def get_package(id: str):
         print(f"DEBUG: get_package - package not found: {id}")
         raise HTTPException(status_code=404, detail="Package not found")
     
-    # If URL is missing (uploaded content), generate a pre-signed URL for download
-    if not pkg.data.url and pkg.data.content:
-         print(f"DEBUG: get_package - generating download URL for {id}")
-         if hasattr(storage, "get_download_url"):
-             url = storage.get_download_url(id)
-             if url:
-                 pkg.data.url = url
-                 print(f"DEBUG: get_package - generated URL: {url[:50]}...")
+    # Generate download_url for all packages per spec
+    if hasattr(storage, "get_download_url"):
+        download_url = storage.get_download_url(id)
+        if download_url:
+            pkg.data.download_url = download_url
+            print(f"DEBUG: get_package - set download_url: {download_url[:50]}...")
                   
     return pkg
 
@@ -319,7 +317,8 @@ async def get_package_cost(id: str):
 @router.post("/artifact/model/{id}/license-check", status_code=status.HTTP_200_OK)
 async def check_license(id: str):
     print(f"DEBUG: LICENSE-CHECK called for id={id}")
-    return {"license": "MIT", "valid": True}
+    # Per spec: response should be a boolean
+    return True
 
 @router.get("/artifact/model/{id}/lineage", status_code=status.HTTP_200_OK)
 async def get_lineage(id: str):
