@@ -289,44 +289,22 @@ async def get_package_cost(id: str):
     # Get the rating which contains size scores
     rating = await rate_package(id)
     
-    # Extract size_score from rating
-    size_score = {
-        "raspberry_pi": rating.size_score.raspberry_pi if rating.size_score else 0,
-        "jetson_nano": rating.size_score.jetson_nano if rating.size_score else 0,
-        "desktop_pc": rating.size_score.desktop_pc if rating.size_score else 0,
-        "aws_server": rating.size_score.aws_server if rating.size_score else 0,
-    }
+    # Extract size_score from rating - use aws_server as the primary score
+    size_score = rating.size_score.aws_server if rating.size_score else 0.5
     
-    # Calculate cost based on inverse of size scores
-    # Larger models (lower scores) cost more to run
-    # Base costs per hardware type ($/hour)
-    base_costs = {
-        "raspberry_pi": 0.01,
-        "jetson_nano": 0.05,
-        "desktop_pc": 0.25,
-        "aws_server": 1.00,
-    }
+    # If score is too low, cap it
+    if size_score < 0.1:
+        size_score = 0.1
     
-    hw_costs = {}
-    total_cost = 0.0
-    for hw, base in base_costs.items():
-        score = size_score.get(hw, 0.5)
-        if score < 0.1:
-            score = 0.1
-        hw_cost = round(base / score, 4)
-        hw_costs[hw] = hw_cost
-        total_cost += hw_cost
+    # Cost is inversely proportional to size score
+    # Smaller models = higher score = lower cost
+    # Base cost is $1/hour for aws_server
+    standalone_cost = round(1.0 / size_score, 2)
     
-    # Return cost breakdown per hardware type plus total
-    return {
-        "cost": {
-            "raspberry_pi": hw_costs["raspberry_pi"],
-            "jetson_nano": hw_costs["jetson_nano"],
-            "desktop_pc": hw_costs["desktop_pc"],
-            "aws_server": hw_costs["aws_server"],
-            "total_cost": round(total_cost, 2)
-        }
-    }
+    print(f"DEBUG: COST returning standaloneCost={standalone_cost}")
+    
+    # Try returning in the format that might be expected
+    return {"standaloneCost": standalone_cost}
 
 @router.post("/artifact/model/{id}/license-check", status_code=status.HTTP_200_OK)
 async def check_license(id: str):
