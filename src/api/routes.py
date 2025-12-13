@@ -276,29 +276,35 @@ async def get_package_cost(id: str):
     }
     
     # Calculate cost based on inverse of size scores
-    # Larger models (lower scores) cost more
+    # Larger models (lower scores) cost more to run
     # Base costs per hardware type ($/hour)
     base_costs = {
-        "raspberry_pi": 0.01,  # Very cheap edge device
-        "jetson_nano": 0.05,   # Edge GPU
-        "desktop_pc": 0.25,    # Consumer GPU
-        "aws_server": 1.00,    # Cloud GPU
+        "raspberry_pi": 0.01,
+        "jetson_nano": 0.05,
+        "desktop_pc": 0.25,
+        "aws_server": 1.00,
     }
     
+    hw_costs = {}
     total_cost = 0.0
     for hw, base in base_costs.items():
         score = size_score.get(hw, 0.5)
-        # Cost inversely proportional to score (lower score = higher cost)
-        # If score is 0, assume maximum cost (score=0.1)
         if score < 0.1:
             score = 0.1
-        hw_cost = base / score
+        hw_cost = round(base / score, 4)
+        hw_costs[hw] = hw_cost
         total_cost += hw_cost
     
-    # Return average cost across hardware types
-    avg_cost = total_cost / len(base_costs)
-    
-    return {"cost": {"total_cost": round(avg_cost, 2)}}
+    # Return cost breakdown per hardware type plus total
+    return {
+        "cost": {
+            "raspberry_pi": hw_costs["raspberry_pi"],
+            "jetson_nano": hw_costs["jetson_nano"],
+            "desktop_pc": hw_costs["desktop_pc"],
+            "aws_server": hw_costs["aws_server"],
+            "total_cost": round(total_cost, 2)
+        }
+    }
 
 @router.post("/artifact/model/{id}/license-check", status_code=status.HTTP_200_OK)
 async def check_license(id: str):
