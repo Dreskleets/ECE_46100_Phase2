@@ -228,7 +228,39 @@ class S3Storage:
 
     def search_by_regex(self, regex: str) -> list[PackageMetadata]:
         import re
+        import signal
+        import time
+        
         print(f"DEBUG: S3 search_by_regex called with pattern: {regex}")
+        
+        # Timeout handler for ReDoS protection
+        class TimeoutError(Exception):
+            pass
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Regex match timeout")
+        
+        def safe_regex_search(pattern, text, timeout_sec=1):
+            """Regex search with timeout protection."""
+            if not text:
+                return None
+            try:
+                # Set alarm for timeout (Unix only)
+                old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(timeout_sec)
+                try:
+                    result = pattern.search(text)
+                    return result
+                finally:
+                    signal.alarm(0)  # Cancel alarm
+                    signal.signal(signal.SIGALRM, old_handler)
+            except TimeoutError:
+                print(f"DEBUG: Regex timeout on text len={len(text)}")
+                return None
+            except Exception:
+                # SIGALRM not available on Windows, fall back to no timeout
+                return pattern.search(text)
+        
         try:
             pattern = re.compile(regex, re.IGNORECASE)  # Case insensitive
         except re.error:
@@ -239,15 +271,23 @@ class S3Storage:
         paginator = self.s3.get_paginator('list_objects_v2')
         pages = paginator.paginate(Bucket=self.bucket, Prefix=self.prefix, Delimiter='/')
         
+        start_time = time.time()
+        MAX_TOTAL_TIME = 25  # 25 second total timeout for all matches
+        
         for page in pages:
             for prefix in page.get('CommonPrefixes', []):
+                # Check total time limit
+                if time.time() - start_time > MAX_TOTAL_TIME:
+                    print(f"DEBUG: S3 regex total timeout reached, returning partial results")
+                    break
+                    
                 pkg_id = prefix.get('Prefix').split('/')[-2]
                 pkg = self.get_package(pkg_id)
                 if not pkg:
                     continue
                 
-                name_match = pattern.search(pkg.metadata.name) if pkg.metadata.name else False
-                readme_match = pattern.search(pkg.data.readme) if pkg.data.readme else False
+                name_match = safe_regex_search(pattern, pkg.metadata.name) if pkg.metadata.name else None
+                readme_match = safe_regex_search(pattern, pkg.data.readme) if pkg.data.readme else None
                 
                 print(f"DEBUG: S3 regex check: name={pkg.metadata.name}, name_match={bool(name_match)}, readme_len={len(pkg.data.readme or '')}, readme_match={bool(readme_match)}")
                 
