@@ -1,12 +1,15 @@
+const API_BASE =
+  "https://sm90vexhij.execute-api.us-east-2.amazonaws.com/Initial";
+
 async function loadModels() {
   try {
-    const res = await fetch("https://sm90vexhij.execute-api.us-east-2.amazonaws.com/Initial/models");
+    const res = await fetch(`${API_BASE}/models`);
     const models = await res.json();
 
     const container = document.getElementById("modelList");
     container.innerHTML = "";
 
-    if (models.length === 0) {
+    if (!Array.isArray(models) || models.length === 0) {
       container.innerHTML = "<p>No models found.</p>";
       return;
     }
@@ -14,16 +17,34 @@ async function loadModels() {
     models.forEach((model) => {
       const card = document.createElement("div");
       card.className = "col-md-4 mb-3";
+
+      const modelId = model.id || model.model_id || model.name;
+
       card.innerHTML = `
-        <div class="card shadow-sm h-100">
-          <div class="card-body">
-            <h5>${model.name}</h5>
-            <h6 class="text-muted">${model.category}</h6>
-            <p>${model.description}</p>
-            <p class="text-warning mb-0">⭐ ${model.avg_rating}</p>
+        <div class="card shadow-sm h-100" data-test="model-card">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">${model.name || "Unnamed Model"}</h5>
+            <h6 class="text-muted">${model.category || ""}</h6>
+            <p class="card-text text-muted flex-grow-1">
+              ${model.description || "No description available."}
+            </p>
+            <p class="text-warning mb-2">
+              ⭐ ${model.avg_rating != null ? model.avg_rating : "N/A"}
+            </p>
+
+            <!-- NEW: Link to model detail page -->
+            <a
+              href="model.html?id=${encodeURIComponent(modelId)}"
+              class="btn btn-sm btn-primary mt-auto"
+              id="view-model-${modelId}"
+              aria-label="View details for ${model.name || "this model"}"
+            >
+              View Details
+            </a>
           </div>
         </div>
       `;
+
       container.appendChild(card);
     });
   } catch (err) {
