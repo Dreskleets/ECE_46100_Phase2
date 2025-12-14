@@ -118,11 +118,24 @@ async def upload_package(package: PackageData, x_authorization: str | None = Hea
         if "huggingface.co" in package.url:
             try:
                 from huggingface_hub import hf_hub_download
-                model_id = package.url.split("huggingface.co/")[-1].strip("/")
-                readme_path = hf_hub_download(repo_id=model_id, filename="README.md")
-                with open(readme_path, encoding="utf-8") as f:
-                    readme_content = f.read()
-                print(f"DEBUG: Fetched HuggingFace README for {model_id}")
+                # Extract the ID from URL
+                hf_id = package.url.split("huggingface.co/")[-1].strip("/")
+                
+                # Try as model first
+                try:
+                    readme_path = hf_hub_download(repo_id=hf_id, filename="README.md")
+                    with open(readme_path, encoding="utf-8") as f:
+                        readme_content = f.read()
+                    print(f"DEBUG: Fetched HuggingFace README for {hf_id}")
+                except Exception as model_err:
+                    # If model fails, try as dataset
+                    try:
+                        readme_path = hf_hub_download(repo_id=hf_id, filename="README.md", repo_type="dataset")
+                        with open(readme_path, encoding="utf-8") as f:
+                            readme_content = f.read()
+                        print(f"DEBUG: Fetched HuggingFace Dataset README for {hf_id}")
+                    except Exception as ds_err:
+                        print(f"DEBUG: Failed to fetch HuggingFace README for {package.url}: model={model_err}, dataset={ds_err}")
             except Exception as e:
                 print(f"DEBUG: Failed to fetch HuggingFace README for {package.url}: {e}")
         elif "github.com" in package.url:
@@ -357,7 +370,7 @@ async def check_license(id: str):
 
 @router.get("/artifact/model/{id}/lineage", status_code=status.HTTP_200_OK)
 async def get_lineage(id: str):
-    """Get lineage for a specific model - shows related datasets and code."""
+    """Get lineage for a specific model - shows ACTUAL relationships from config."""
     print(f"DEBUG: LINEAGE called for id={id}")
     pkg = storage.get_package(id)
     if not pkg:
@@ -366,6 +379,7 @@ async def get_lineage(id: str):
     
     nodes = []
     edges = []
+    node_ids_added = set()
     
     # Add the model itself as a node
     model_name = pkg.metadata.name if pkg.metadata else id
@@ -374,41 +388,88 @@ async def get_lineage(id: str):
         "name": model_name,
         "source": "config_json"
     })
+    node_ids_added.add(id)
     
-    # Get all packages to find related datasets/code
-    # list_packages returns PackageMetadata objects directly, not Package objects
+    # Try to find ACTUAL relationships from HuggingFace config
+    base_model_name = None
+    dataset_names = []
+    
+    if pkg.data.url and "huggingface.co" in pkg.data.url:
+        try:
+            from huggingface_hub import model_info
+            model_id = pkg.data.url.split("huggingface.co/")[-1].strip("/")
+            info = model_info(model_id)
+            
+            # Look for base_model in config/card
+            if hasattr(info, 'cardData') and info.cardData:
+                # Check for base_model field
+                if hasattr(info.cardData, 'base_model'):
+                    base_model_name = info.cardData.base_model
+                    print(f"DEBUG: LINEAGE found base_model: {base_model_name}")
+                # Check for datasets field
+                if hasattr(info.cardData, 'datasets'):
+                    dataset_names = info.cardData.datasets or []
+                    print(f"DEBUG: LINEAGE found datasets: {dataset_names}")
+        except Exception as e:
+            print(f"DEBUG: LINEAGE HuggingFace lookup failed: {e}")
+    
+    # Get all packages to find matching artifacts
     all_packages = storage.list_packages([], 0, 1000)
     
-    # Add related packages as nodes and create edges
+    # Create a lookup by name
+    pkg_by_name = {}
     for pkg_meta in all_packages:
-        # pkg_meta is already a PackageMetadata object
-        other_id = pkg_meta.id if pkg_meta.id else ""
-        other_type = pkg_meta.type if pkg_meta.type else "code"
-        other_name = pkg_meta.name if pkg_meta.name else ""
-        
-        if other_id != id:
-            nodes.append({
-                "artifact_id": other_id,
-                "name": other_name,
-                "source": "config_json"
-            })
-            # Create edges based on relationship type per spec
-            # Per spec example: base_model relationship from base TO derived
-            if other_type == "model":
-                # Other models could be base models for this one
-                edges.append({
-                    "from_node_artifact_id": other_id,
-                    "to_node_artifact_id": id,
-                    "relationship": "base_model"
-                })
-            elif other_type == "dataset":
-                # Datasets used to train/finetune this model
-                edges.append({
-                    "from_node_artifact_id": other_id,
-                    "to_node_artifact_id": id,
-                    "relationship": "fine_tuning_dataset"
-                })
+        if pkg_meta.name:
+            pkg_by_name[pkg_meta.name.lower()] = pkg_meta
+            # Also add without owner prefix
+            if "/" in pkg_meta.name:
+                short_name = pkg_meta.name.split("/")[-1].lower()
+                pkg_by_name[short_name] = pkg_meta
     
+    # Add base_model relationship if found
+    if base_model_name:
+        base_name_lower = base_model_name.lower()
+        # Try to find this model in our packages
+        for name_variant in [base_name_lower, base_name_lower.split("/")[-1] if "/" in base_name_lower else base_name_lower]:
+            if name_variant in pkg_by_name:
+                base_pkg = pkg_by_name[name_variant]
+                if base_pkg.id and base_pkg.id != id:
+                    if base_pkg.id not in node_ids_added:
+                        nodes.append({
+                            "artifact_id": base_pkg.id,
+                            "name": base_pkg.name,
+                            "source": "config_json"
+                        })
+                        node_ids_added.add(base_pkg.id)
+                    edges.append({
+                        "from_node_artifact_id": base_pkg.id,
+                        "to_node_artifact_id": id,
+                        "relationship": "base_model"
+                    })
+                    break
+    
+    # Add dataset relationships if found
+    for ds_name in dataset_names:
+        ds_name_lower = ds_name.lower()
+        for name_variant in [ds_name_lower, ds_name_lower.split("/")[-1] if "/" in ds_name_lower else ds_name_lower]:
+            if name_variant in pkg_by_name:
+                ds_pkg = pkg_by_name[name_variant]
+                if ds_pkg.id and ds_pkg.id != id:
+                    if ds_pkg.id not in node_ids_added:
+                        nodes.append({
+                            "artifact_id": ds_pkg.id,
+                            "name": ds_pkg.name,
+                            "source": "config_json"
+                        })
+                        node_ids_added.add(ds_pkg.id)
+                    edges.append({
+                        "from_node_artifact_id": ds_pkg.id,
+                        "to_node_artifact_id": id,
+                        "relationship": "fine_tuning_dataset"
+                    })
+                    break
+    
+    print(f"DEBUG: LINEAGE returning {len(nodes)} nodes, {len(edges)} edges")
     return {"nodes": nodes, "edges": edges}
 
 @router.get("/artifact/model/lineage", status_code=status.HTTP_200_OK)
