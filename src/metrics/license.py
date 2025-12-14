@@ -192,9 +192,23 @@ def metric(resource: dict[str, Any]) -> tuple[float, int]:
         )
     # if still nothing, optionally we could attempt remote read (omitted here for determinism)
     if not text:
+        # Try HuggingFace API for license info
+        url = resource.get("url", "")
+        if "huggingface.co" in url:
+            try:
+                from huggingface_hub import model_info
+                model_id = url.split("huggingface.co/")[-1].strip("/")
+                info = model_info(model_id)
+                if hasattr(info, 'cardData') and info.cardData:
+                    license_info = getattr(info.cardData, 'license', None)
+                    if license_info:
+                        text = f"License: {license_info}"
+                        print(f"DEBUG: License from HuggingFace API: {license_info}")
+            except Exception as e:
+                print(f"DEBUG: License HuggingFace lookup failed: {e}")
         # fallback to resource 'url' presence (we choose not to fetch network READMEs here)
-        # We will still attempt LLM only if API key is present and resource.url has some brief text
-        text = ""
+        if not text:
+            text = ""
 
     # 2) Try LLM if API key is present (Purdue GenAI)
     api_key = os.environ.get(_API_KEY_ENV)
