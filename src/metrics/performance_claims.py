@@ -1,77 +1,108 @@
+"""
+Performance Claims Metric Module.
+
+Analyzes the package documentation for performance claims and benchmarks.
+"""
 from __future__ import annotations
 
 import logging
-
-# Imports from standard Python libraries
 import time
 from typing import Any
 
-# Import the specific functions we need from the huggingface_hub library
-from huggingface_hub import model_info
+from huggingface_hub import hf_hub_download, model_info
 from huggingface_hub.utils import HfHubHTTPError
 
-# This gets the same logger instance used by run.py, so all logs go to the same place.
+# Import Bedrock client
+from src.utils.bedrock_client import get_bedrock_client
+
 logger = logging.getLogger("phase1_cli")
 
 
-# The 'metric' function is the required entry point for all metric files.
-# It takes a 'resource' dictionary (containing URL, name, etc.)
-# and must return a tuple containing a float (the score) and an int (the latency).
 def metric(resource: dict[str, Any]) -> tuple[float, int]:
     """
-    Calculates a score based on the model's popularity on the Hugging Face Hub,
-    primarily using its download count.
+    Performance Claims metric using AWS Bedrock for README analysis.
+    
+    Analyzes model README for:
+    - Benchmark results and tables
+    - Performance metrics (accuracy, F1, BLEU, etc.)
+    - Model comparisons
+    - Links to evaluation papers/datasets
+    
+    Falls back to download-based scoring if Bedrock unavailable.
     """
-    # Start a timer to measure how long this metric takes to run.
     start_time = time.perf_counter()
-    # Initialize the score to 0.0. It will be updated only on success.
     score = 0.0
 
-    # Use a try...except block to handle potential errors, like network issues or if the model doesn't exist.
     try:
-        # Extract the repository ID (e.g., "google/gemma-2b") from the resource dictionary.
-        # This name is parsed from the URL by the main run.py script.
         repo_id = resource.get("name")
         if not repo_id:
-            raise ValueError("Resource dictionary is missing a 'name' key for the repo_id.")
+            logger.debug("No repo_id in resource")
+            return 0.0, int((time.perf_counter() - start_time) * 1000)
 
-        # This is the main API call. It fetches all metadata for the given model repo_id.
+        url = resource.get("url", "")
+        if "huggingface.co" not in url:
+            logger.debug(f"Skipping non-HF resource: {repo_id}")
+            return 0.0, int((time.perf_counter() - start_time) * 1000)
+
+        # Get model info for downloads (fallback scoring)
         info = model_info(repo_id)
-        # Safely get the download count. If it's not available, default to 0.
         downloads = info.downloads or 0
-        # This log message is useful for debugging. It will only show up if LOG_LEVEL is 2.
-        logger.debug(f"Successfully fetched info for {repo_id}. Downloads: {downloads}")
-
-        # --- Scoring Logic ---
-        # Convert the raw download number into a score between 0.0 and 1.0.
-        # This simple tiered system assigns higher scores to more popular models.
-        if downloads > 1_000_000:
-            score = 1.0
-        elif downloads > 100_000:
-            score = 0.8
-        elif downloads > 10_000:
-            score = 0.6
-        elif downloads > 1_000:
-            score = 0.4
-        elif downloads > 100:
-            score = 0.2
+        
+        # Try Bedrock README analysis first
+        bedrock_client = get_bedrock_client()
+        if bedrock_client.enabled:
+            try:
+                # Download README
+                readme_path = hf_hub_download(
+                    repo_id=repo_id,
+                    filename="README.md",
+                    repo_type="model"
+                )
+                with open(readme_path, encoding='utf-8', errors='replace') as f:
+                    readme_content = f.read()
+                
+                # Analyze with Bedrock
+                result = bedrock_client.analyze_readme_for_benchmarks(readme_content)
+                score = result['score']
+                logger.debug(f"Bedrock analysis for {repo_id}: {result['reason']}")
+                
+                # Boost score slightly based on downloads (popular = likely good claims)
+                if downloads > 100_000:
+                    score = min(1.0, score * 1.1)
+                elif downloads > 10_000:
+                    score = min(1.0, score * 1.05)
+                
+            except Exception as e:
+                logger.debug(f"Bedrock analysis failed, using download fallback: {e}")
+                # Fall through to download-based scoring
+                score = _score_by_downloads(downloads)
         else:
-            score = 0.1
+            # Bedrock not available, use download-based scoring
+            logger.debug("Bedrock not enabled, using download-based scoring")
+            score = _score_by_downloads(downloads)
 
     except HfHubHTTPError:
-        # This specific error is for when the Hugging Face Hub returns an HTTP error (e.g., 404 Not Found).
-        # In this case, the model doesn't exist or is private, so it gets a score of 0.
-        logger.error(f"Could not find model '{repo_id}' on the Hub.")
+        logger.error("Could not find model on Hub")
         score = 0.0
     except Exception as e:
-        # This is a general catch-all for any other unexpected errors (e.g., no internet connection).
-        logger.exception(f"An unexpected error occurred while fetching info for {repo_id}: {e}")
+        logger.exception(f"Unexpected error in performance_claims: {e}")
         score = 0.0
 
-    # Stop the timer.
-    end_time = time.perf_counter()
-    # Calculate the total time taken in milliseconds.
-    latency_ms = int((end_time - start_time) * 1000)
-
-    # Return the final score and the calculated latency.
+    latency_ms = int((time.perf_counter() - start_time) * 1000)
     return score, latency_ms
+
+
+def _score_by_downloads(downloads: int) -> float:
+    """Fallback scoring based on download popularity."""
+    if downloads > 1_000_000:
+        return 1.0
+    elif downloads > 100_000:
+        return 0.8
+    elif downloads > 10_000:
+        return 0.6
+    elif downloads > 1_000:
+        return 0.4
+    elif downloads > 100:
+        return 0.2
+    else:
+        return 0.1

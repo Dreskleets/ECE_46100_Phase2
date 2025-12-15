@@ -92,14 +92,14 @@ def test_load_metrics_and_compute(monkeypatch):
     with patch("pkgutil.iter_modules", return_value=[(None, "src.metrics.fake_metric", False)]):
         metrics = run.load_metrics()
         assert "fake_metric" in metrics
-
-    resource = {
-        "url": "https://huggingface.co/google/bert-base-uncased",
-        "name": "google/bert-base-uncased",
-    }
-    result = run.compute_metrics_for_model(resource)
-    assert "net_score" in result
-    assert isinstance(result["net_score_latency"], int)
+        
+        resource = {
+            "url": "https://huggingface.co/google/bert-base-uncased",
+            "name": "google/bert-base-uncased",
+        }
+        result = run.compute_metrics_for_model(resource)
+        assert "net_score" in result
+        assert isinstance(result["net_score_latency"], int)
 
 
 def test_main_branches(monkeypatch, tmp_path, capsys):
