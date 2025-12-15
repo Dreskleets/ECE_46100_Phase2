@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from datetime import UTC
 
@@ -619,11 +620,10 @@ async def get_global_lineage():
 
 @router.post("/package/byRegEx", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
 async def search_by_regex(regex: PackageRegEx):
-    import re
     try:
         re.compile(regex.RegEx)
     except re.error:
-        raise HTTPException(status_code=400, detail="Invalid regex")
+        raise HTTPException(status_code=400, detail="Invalid regex") from None
         
     return storage.search_by_regex(regex.RegEx)
 
