@@ -2,9 +2,9 @@
 Local test script to mimic autograder API calls.
 Tests ingestion, rating, and retrieval of models, datasets, and code.
 """
-import requests
-import json
 import time
+
+import requests
 
 # Update this to your local FastAPI instance or Lambda URL
 BASE_URL = "http://localhost:8000"  # Change to your API URL

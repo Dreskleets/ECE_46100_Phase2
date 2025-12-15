@@ -1,13 +1,15 @@
+from unittest.mock import MagicMock, patch
+
 from fastapi.testclient import TestClient
+
 from src.main import app
-from unittest.mock import patch, MagicMock
 
 client = TestClient(app)
 
 def test_perf_experiment_endpoint():
     """Smoke test to verify performance experiment endpoint runs."""
     # We mock _generate_dummy_data and concurrent execution to be fast
-    with patch("src.api.experiment._generate_dummy_data") as mock_gen:
+    with patch("src.api.experiment._generate_dummy_data"):
         # We also want to intercept get_package to avoid real storage
         with patch("src.api.experiment.storage.get_package") as mock_get:
             mock_get.return_value = MagicMock(data=MagicMock(content="x"))
