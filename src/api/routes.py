@@ -100,9 +100,10 @@ async def upload_package(package: PackageData, x_authorization: str | None = Hea
     
     if package.url and not package.content:
         # Ingest - Only rate MODELS, not code/datasets
+        computed_rating = None
         if package_type == "model":
-            rating = compute_package_rating(package.url)
-            if rating.net_score < 0.25:
+            computed_rating = compute_package_rating(package.url)
+            if computed_rating.net_score < 0.25:
                 raise HTTPException(status_code=424, detail="Model score too low for ingestion")
         
         # Code and datasets always get ingested without rating
@@ -167,6 +168,32 @@ async def upload_package(package: PackageData, x_authorization: str | None = Hea
         )
         new_pkg = Package(metadata=metadata, data=package_with_readme)
         storage.add_package(new_pkg)
+        
+        # Save pre-computed rating for models (for faster concurrent requests)
+        if package_type == "model" and computed_rating and hasattr(storage, 'save_rating'):
+            try:
+                pre_rating = PackageRating(
+                    bus_factor=computed_rating.bus_factor, bus_factor_latency=computed_rating.bus_factor_latency,
+                    code_quality=computed_rating.code_quality, code_quality_latency=computed_rating.code_quality_latency,
+                    ramp_up_time=computed_rating.ramp_up_time, ramp_up_time_latency=computed_rating.ramp_up_time_latency,
+                    responsive_maintainer=computed_rating.responsive_maintainer, responsive_maintainer_latency=computed_rating.responsive_maintainer_latency,
+                    license=computed_rating.license, license_latency=computed_rating.license_latency,
+                    good_pinning_practice=computed_rating.good_pinning_practice, good_pinning_practice_latency=computed_rating.good_pinning_practice_latency,
+                    reviewedness=computed_rating.reviewedness, reviewedness_latency=computed_rating.reviewedness_latency,
+                    net_score=computed_rating.net_score, net_score_latency=computed_rating.net_score_latency,
+                    tree_score=computed_rating.tree_score, tree_score_latency=computed_rating.tree_score_latency,
+                    reproducibility=computed_rating.reproducibility, reproducibility_latency=computed_rating.reproducibility_latency,
+                    performance_claims=computed_rating.performance_claims, performance_claims_latency=computed_rating.performance_claims_latency,
+                    dataset_and_code_score=computed_rating.dataset_and_code_score, dataset_and_code_score_latency=computed_rating.dataset_and_code_score_latency,
+                    dataset_quality=computed_rating.dataset_quality, dataset_quality_latency=computed_rating.dataset_quality_latency,
+                    size_score=computed_rating.size_score, size_score_latency=computed_rating.size_score_latency,
+                    name=name, category=package_type
+                )
+                storage.save_rating(pkg_id, pre_rating.model_dump_json())
+                print(f"DEBUG: Pre-computed rating saved for {pkg_id}")
+            except Exception as e:
+                print(f"DEBUG: Failed to save pre-computed rating: {e}")
+        
         return new_pkg
 
     elif package.content and not package.url:
