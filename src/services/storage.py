@@ -232,6 +232,20 @@ class S3Storage:
         
         print(f"DEBUG: S3 search_by_regex called with pattern: {regex}")
         
+        # Detect ReDoS patterns and return [] immediately
+        # Patterns with nested quantifiers are extremely dangerous
+        redos_patterns = [
+            r'\{[0-9]+,[0-9]+\}.*\{[0-9]+,[0-9]+\}',  # nested {n,m} quantifiers
+            r'\+\)\+',  # nested + quantifiers like (a+)+
+            r'\*\)\*',  # nested * quantifiers like (a*)*
+            r'\+\)\*',  # nested +/* like (a+)*
+            r'\*\)\+',  # nested */* like (a*)+
+        ]
+        for dangerous in redos_patterns:
+            if re.search(dangerous, regex):
+                print(f"DEBUG: S3 regex ReDoS pattern detected, returning []")
+                return []
+        
         try:
             pattern = re.compile(regex, re.IGNORECASE)  # Case insensitive
         except re.error:
