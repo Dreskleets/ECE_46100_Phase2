@@ -1,10 +1,15 @@
+"""
+Performance Claims Metric Module.
+
+Analyzes the package documentation for performance claims and benchmarks.
+"""
 from __future__ import annotations
 
 import logging
 import time
 from typing import Any
 
-from huggingface_hub import model_info, hf_hub_download
+from huggingface_hub import hf_hub_download, model_info
 from huggingface_hub.utils import HfHubHTTPError
 
 # Import Bedrock client
@@ -53,7 +58,7 @@ def metric(resource: dict[str, Any]) -> tuple[float, int]:
                     filename="README.md",
                     repo_type="model"
                 )
-                with open(readme_path, 'r', encoding='utf-8', errors='replace') as f:
+                with open(readme_path, encoding='utf-8', errors='replace') as f:
                     readme_content = f.read()
                 
                 # Analyze with Bedrock
@@ -77,7 +82,7 @@ def metric(resource: dict[str, Any]) -> tuple[float, int]:
             score = _score_by_downloads(downloads)
 
     except HfHubHTTPError:
-        logger.error(f"Could not find model on Hub")
+        logger.error("Could not find model on Hub")
         score = 0.0
     except Exception as e:
         logger.exception(f"Unexpected error in performance_claims: {e}")

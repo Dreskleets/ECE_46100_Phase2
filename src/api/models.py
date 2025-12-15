@@ -1,4 +1,8 @@
+"""
+API Models Module.
 
+Defines the Pydantic data models for the API requests, responses, and internal data structures.
+"""
 from pydantic import BaseModel, Field
 
 # --- Package Models ---

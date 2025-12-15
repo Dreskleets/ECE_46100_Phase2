@@ -99,7 +99,7 @@ def test_extract_urls_from_html_invalid(monkeypatch):
     "inp,expected",
     [
         ("https://huggingface.co/datasets/own/nm", "https://huggingface.co/datasets/own/nm"),
-        ("https://huggingface.co/own/nm", "https://huggingface.co/datasets/own/nm"),
+        ("https://huggingface.co/own/nm", None),  # Model URLs are correctly rejected
         ("owner1/data1", "https://huggingface.co/datasets/owner1/data1"),
         ("", None),
     ],

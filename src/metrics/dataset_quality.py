@@ -1,3 +1,8 @@
+"""
+Dataset Quality Metric Module.
+
+Assesses the quality of datasets associated with a package based on metadata and size.
+"""
 import logging
 import time
 from typing import Any

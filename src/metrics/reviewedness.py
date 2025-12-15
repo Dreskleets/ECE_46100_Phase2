@@ -24,6 +24,7 @@ This is not perfect, but matches the intent and is explainable in your report.
 from __future__ import annotations
 
 import subprocess
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -221,6 +222,26 @@ def compute_reviewedness(
         repo_path=repo,
         reason="Reviewedness computed from git history using commit message heuristics",
     )
+
+
+
+
+
+def metric(resource: dict) -> tuple[float, float]:
+    """
+    Adapter for metrics_service.
+    """
+    start_time = time.time()
+
+    local_path = resource.get("local_path")
+    if not local_path:
+        # If no local path (e.g. HF model without git repo), we can't compute git-based reviewedness.
+        return 0.0, time.time() - start_time
+
+    result = compute_reviewedness(local_path)
+    score = result.score if result.score >= 0 else 0.0
+
+    return score, time.time() - start_time
 
 
 if __name__ == "__main__":

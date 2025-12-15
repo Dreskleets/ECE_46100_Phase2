@@ -1,5 +1,10 @@
 # metrics/net_score.py
 
+"""
+Net Score Metric Module.
+
+Aggregates individual metric scores into a final weighted net score.
+"""
 from collections.abc import Mapping
 
 # Phase 1 metric weights (you can tweak these if your team decided differently)

@@ -1,3 +1,8 @@
+"""
+Code Quality Metric Module.
+
+Evaluates the code quality of a package based on various heuristics and static analysis.
+"""
 import time
 from pathlib import Path
 from typing import Any

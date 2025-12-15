@@ -1,3 +1,8 @@
+"""
+Category Metric Module.
+
+Determines the category of a package (e.g., model, dataset, code).
+"""
 import time
 from typing import Any
 
