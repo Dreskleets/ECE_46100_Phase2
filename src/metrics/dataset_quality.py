@@ -145,6 +145,31 @@ def metric(resource: dict[str, Any]) -> tuple[float, int]:
         if scores:
             score = max(scores)
             print(f"DEBUG dataset_quality: max score={score}")
+    
+    # If no datasets found, give a base score for existing HF models
+    if score == 0.0 and category == "MODEL":
+        url = resource.get("url", "")
+        if "huggingface.co" in url:
+            try:
+                model_id = url.split("huggingface.co/")[-1].strip("/")
+                info = model_info(model_id)
+                
+                # Base score for existing model + bonus for popularity
+                downloads = getattr(info, 'downloads', 0) or 0
+                
+                if downloads > 100000:
+                    score = 0.6
+                elif downloads > 10000:
+                    score = 0.5
+                elif downloads > 1000:
+                    score = 0.4
+                else:
+                    score = 0.3  # Base for existing HF model
+                    
+                print(f"DEBUG dataset_quality: HuggingFace fallback score={score}")
+            except Exception as e:
+                print(f"DEBUG dataset_quality: HuggingFace fallback failed: {e}")
+                score = 0.3  # Default base score
 
     latency_ms = int((time.perf_counter() - start_time) * 1000)
     return score, latency_ms
