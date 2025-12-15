@@ -54,6 +54,3 @@ Detailed API documentation is available at `/docs` (Swagger UI) when running loc
 *   **Get Package**: `GET /packages/{id}`
 *   **Search**: `POST /packages` (Search query)
 *   **Reset**: `DELETE /reset`
-
-## Performance Track
-See [PERFORMANCE.md](PERFORMANCE.md) for details on the performance experiment, caching architecture, and experimental results.
