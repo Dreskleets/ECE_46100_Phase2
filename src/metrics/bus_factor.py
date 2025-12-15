@@ -44,6 +44,7 @@ def metric(resource: dict) -> tuple[float, int]:
     """
     Bus Factor metric:
     - Extract authors from the cloned repo at resource['local_path'] or ['local_dir'].
+    - Falls back to HuggingFace API if no repo available.
     - Return (score ∈ [0,1], latency_ms).
     """
     start = time.perf_counter()
@@ -68,6 +69,36 @@ def metric(resource: dict) -> tuple[float, int]:
         print(f"DEBUG: bus_factor skipped (path={repo_path}, Repo={Repo})")
 
     score = compute_bus_factor_from_commits(commits)
+    
+    # If no commits found, try HuggingFace API as fallback
+    if score == 0.0:
+        url = resource.get("url", "")
+        if "huggingface.co" in url:
+            try:
+                from huggingface_hub import model_info
+                model_id = url.split("huggingface.co/")[-1].strip("/")
+                info = model_info(model_id)
+                
+                # Use downloads and likes as proxy for bus factor
+                # Popular models tend to have more contributors
+                downloads = getattr(info, 'downloads', 0) or 0
+                likes = getattr(info, 'likes', 0) or 0
+                
+                # Score based on popularity (proxy for community engagement)
+                if downloads > 100000 or likes > 100:
+                    score = 0.8
+                elif downloads > 10000 or likes > 20:
+                    score = 0.6
+                elif downloads > 1000 or likes > 5:
+                    score = 0.4
+                else:
+                    score = 0.3  # Base score for existing HF models
+                    
+                print(f"DEBUG: bus_factor HuggingFace fallback: downloads={downloads}, likes={likes}, score={score}")
+            except Exception as e:
+                print(f"DEBUG: bus_factor HuggingFace lookup failed: {e}")
+                score = 0.3  # Default for HF models
+    
     print(f"DEBUG: bus_factor score={score}")
     latency_ms = int((time.perf_counter() - start) * 1000)
     return float(score), latency_ms

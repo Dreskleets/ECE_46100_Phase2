@@ -322,6 +322,34 @@ class S3Storage:
             print(f"DEBUG: S3 get_download_url error: {e}")
             return None
 
+    def save_rating(self, package_id: str, rating_json: str) -> bool:
+        """Save rating to S3 for persistent caching."""
+        try:
+            key = f"{self.prefix}{package_id}/rating.json"
+            self.s3.put_object(
+                Bucket=self.bucket,
+                Key=key,
+                Body=rating_json,
+                ContentType='application/json'
+            )
+            print(f"DEBUG: S3 save_rating saved for {package_id}")
+            return True
+        except Exception as e:
+            print(f"DEBUG: S3 save_rating error: {e}")
+            return False
+
+    def get_rating(self, package_id: str) -> str | None:
+        """Get cached rating from S3."""
+        try:
+            key = f"{self.prefix}{package_id}/rating.json"
+            response = self.s3.get_object(Bucket=self.bucket, Key=key)
+            rating_json = response['Body'].read().decode('utf-8')
+            print(f"DEBUG: S3 get_rating found cached rating for {package_id}")
+            return rating_json
+        except Exception as e:
+            print(f"DEBUG: S3 get_rating not found for {package_id}: {e}")
+            return None
+
 
 
 
