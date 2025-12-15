@@ -253,10 +253,24 @@ async def list_packages_model_slash():
 
 @router.get("/package/{id}/rate", response_model=PackageRating, status_code=status.HTTP_200_OK)
 async def rate_package(id: str):
-    # Check cache first
+    # Check in-memory cache first (fast)
     if id in rating_cache:
-        print(f"DEBUG: Rate cache HIT for {id}")
+        print(f"DEBUG: Rate in-memory cache HIT for {id}")
         return rating_cache[id]
+    
+    # Check S3 cache (persistent across Lambda containers)
+    if hasattr(storage, 'get_rating'):
+        cached_rating_json = storage.get_rating(id)
+        if cached_rating_json:
+            try:
+                import json
+                rating_data = json.loads(cached_rating_json)
+                result = PackageRating(**rating_data)
+                rating_cache[id] = result  # Also cache in memory
+                print(f"DEBUG: Rate S3 cache HIT for {id}")
+                return result
+            except Exception as e:
+                print(f"DEBUG: Rate S3 cache parse error: {e}")
     
     print(f"DEBUG: Rate cache MISS for {id}, computing...")
     pkg = storage.get_package(id)
@@ -298,8 +312,12 @@ async def rate_package(id: str):
             name=pkg.metadata.name,
             category=pkg.metadata.type.lower() if pkg.metadata.type else "code"
         )
-        # Cache the result
+        # Cache the result in memory
         rating_cache[id] = result
+        # Also save to S3 for persistent caching across Lambda containers
+        if hasattr(storage, 'save_rating'):
+            import json
+            storage.save_rating(id, result.model_dump_json())
         return result
     
     result = PackageRating(
