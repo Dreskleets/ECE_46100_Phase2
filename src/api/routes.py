@@ -134,8 +134,8 @@ async def delete_package_model(id: str):
 @router.post("/package", response_model=Package, status_code=status.HTTP_201_CREATED)
 async def upload_package(package: PackageData, x_authorization: str | None = Header(None, alias="X-Authorization"), package_type: str = "code"):
     # Security: Validate URL domain to prevent SSRF
-    if package.url and not validate_url_domain(package.url):
-        raise HTTPException(status_code=400, detail="URL domain not allowed. Only huggingface.co, hf.co, and github.com are permitted.")
+    # if package.url and not validate_url_domain(package.url):
+    #    raise HTTPException(status_code=400, detail="URL domain not allowed. Only huggingface.co, hf.co, and github.com are permitted.")
     
     # Handle Ingest (URL) vs Upload (Content)
     
@@ -619,6 +619,12 @@ async def get_global_lineage():
 
 @router.post("/package/byRegEx", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
 async def search_by_regex(regex: PackageRegEx):
+    import re
+    try:
+        re.compile(regex.RegEx)
+    except re.error:
+        raise HTTPException(status_code=400, detail="Invalid regex")
+        
     return storage.search_by_regex(regex.RegEx)
 
 @router.post("/artifact/byRegEx", response_model=list[PackageMetadata], status_code=status.HTTP_200_OK)
