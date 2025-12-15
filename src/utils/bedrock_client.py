@@ -2,12 +2,11 @@
 Bedrock client for LLM-based metric analysis.
 Uses caching to avoid redundant API calls.
 """
+import hashlib
 import json
 import os
-import hashlib
 import time
 from pathlib import Path
-from typing import Optional
 
 try:
     import boto3
@@ -51,12 +50,12 @@ class BedrockClient:
         """Generate cache key from prompt."""
         return hashlib.md5(prompt.encode()).hexdigest()
     
-    def _get_cached_response(self, cache_key: str) -> Optional[dict]:
+    def _get_cached_response(self, cache_key: str) -> dict | None:
         """Retrieve cached response if available and fresh."""
         cache_file = CACHE_DIR / f"{cache_key}.json"
         if cache_file.exists():
             try:
-                with open(cache_file, 'r') as f:
+                with open(cache_file) as f:
                     cached = json.load(f)
                 # Cache valid for 24 hours
                 if time.time() - cached.get('timestamp', 0) < 86400:
@@ -96,6 +95,11 @@ class BedrockClient:
         
         # Truncate README to save tokens (first 2000 chars usually sufficient)
         truncated = readme_text[:2000] if len(readme_text) > 2000 else readme_text
+        
+        # Security: Sanitize input to prevent prompt injection
+        # Remove potential control sequences and escape braces
+        truncated = truncated.replace("```", "")  # Remove code blocks that might close prompt
+        truncated = truncated.replace("{{", "{").replace("}}", "}")  # Escape braces
         
         prompt = f"""Analyze this model README and score it 0.0-1.0 based on evidence of performance claims:
 

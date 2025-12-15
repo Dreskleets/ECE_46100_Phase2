@@ -1,7 +1,13 @@
+"""
+Responsive Maintainer Metric Module.
+
+Evaluates the responsiveness of the project maintainers.
+"""
 import logging
 import os
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -29,7 +35,7 @@ def metric(resource: dict) -> tuple[float, int]:
                 if metadata.lastModified:
                     try:
                         last_mod = datetime.fromisoformat(metadata.lastModified.replace("Z", "+00:00"))
-                        days_since_update = (datetime.now(timezone.utc) - last_mod).days
+                        days_since_update = (datetime.now(UTC) - last_mod).days
                         
                         # Recent updates = responsive
                         if days_since_update < 30:  # < 1 month

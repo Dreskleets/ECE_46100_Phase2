@@ -1,3 +1,8 @@
+"""
+Dataset and Code Score Module.
+
+Computes a combined score reflecting the presence and quality of both dataset and code components.
+"""
 import logging
 import time
 from typing import Any

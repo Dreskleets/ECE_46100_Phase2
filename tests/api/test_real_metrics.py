@@ -1,10 +1,11 @@
 import io
 import zipfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from fastapi.testclient import TestClient
+
 from src.main import app
 from src.services.metrics_service import compute_package_rating
-from src.api.models import PackageRating
 
 client = TestClient(app)
 

@@ -1,7 +1,11 @@
+"""
+Good Pinning Practice Metric Module.
+
+Checks if the package dependencies are pinned to specific versions to ensure reproducibility.
+"""
 import logging
 import time
 from pathlib import Path
-import re
 
 logger = logging.getLogger(__name__)
 

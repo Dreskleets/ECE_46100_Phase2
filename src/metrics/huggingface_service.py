@@ -1,3 +1,8 @@
+"""
+HuggingFace Service Module.
+
+Provides an interface to the Hugging Hub API for retrieving model metadata.
+"""
 from datetime import datetime
 
 from huggingface_hub import HfApi, hf_api

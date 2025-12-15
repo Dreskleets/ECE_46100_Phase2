@@ -1,9 +1,14 @@
+"""
+Size Metric Module.
+
+Estimates the size of the codebase.
+"""
 from __future__ import annotations
 
 import time
-import requests
 from typing import Any
 
+import requests
 from huggingface_hub import model_info
 from huggingface_hub.utils import HfHubHTTPError
 
@@ -85,12 +90,12 @@ def metric(resource: dict[str, Any]) -> tuple[dict[str, float], int]:
             # Extract from URL like https://huggingface.co/org/model
             model_id = url.split("huggingface.co/")[-1].strip("/")
             print(f"DEBUG SIZE: extracted model_id='{model_id}' from URL")
-        except:
+        except Exception:
             pass
     
     if not model_id:
         # No valid HuggingFace URL - return zeros
-        print(f"DEBUG SIZE: No HuggingFace URL found, returning zeros")
+        print("DEBUG SIZE: No HuggingFace URL found, returning zeros")
         latency_ms = int((time.perf_counter() - start) * 1000)
         return default_scores, latency_ms
     
@@ -116,14 +121,14 @@ def metric(resource: dict[str, Any]) -> tuple[dict[str, float], int]:
         
         # Method 3: Fallback to HTTP HEAD requests
         if size_bytes == 0 and hasattr(info, 'siblings') and info.siblings:
-            print(f"DEBUG SIZE: Trying HTTP HEAD fallback")
+            print("DEBUG SIZE: Trying HTTP HEAD fallback")
             size_bytes = get_model_size_via_http(model_id, info.siblings)
         
         print(f"DEBUG SIZE: final size_bytes={size_bytes}")
         
         if size_bytes == 0:
             # Model found but no size info even after fallback
-            print(f"DEBUG SIZE: Model found but no size info, returning zeros")
+            print("DEBUG SIZE: Model found but no size info, returning zeros")
             latency_ms = int((time.perf_counter() - start) * 1000)
             return default_scores, latency_ms
         

@@ -1,4 +1,8 @@
-# File: src/utils/logging.py
+"""
+Logging Utility Module.
+
+Configures application-wide logging formats and handlers.
+"""
 import logging
 import os
 import sys

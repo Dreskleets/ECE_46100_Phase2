@@ -1,3 +1,10 @@
+"""
+Bus Factor Metric Module.
+
+This module calculates the bus factor score for a software repository or model,
+utilizing entropy-based analysis of commit authorship to quantify the
+distribution of contribution knowledge.
+"""
 from __future__ import annotations
 
 import math
@@ -11,7 +18,15 @@ except ImportError:
 
 
 def compute_bus_factor_from_commits(commits: list[str]) -> float:
-    """Entropy-based bus factor calculation from a list of commit authors."""
+    """
+    Calculate entropy-based bus factor from commit authors.
+
+    Args:
+        commits: List of author identifier strings (email or name).
+
+    Returns:
+        float: Normalized score between 0.0 (low bus factor) and 1.0 (high bus factor).
+    """
     if not commits:
         return 0.0
 

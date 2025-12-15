@@ -1,10 +1,12 @@
 # tests/unit/test_performance_claims.py
 
+from unittest.mock import MagicMock
+
 import pytest
 from huggingface_hub.utils import HfHubHTTPError
 from requests import Response
 
-from src.metrics.performance_claims import metric
+from src.metrics.performance_claims import _score_by_downloads, metric
 
 
 class FakeModelInfo:
@@ -13,12 +15,17 @@ class FakeModelInfo:
 
 
 def test_performance_claims_high_downloads(mocker):
-    """Models with >1M downloads should return 1.0 score."""
+    """Models with >1M downloads should return 1.0 score via Bedrock or fallback."""
     mocker.patch(
         "src.metrics.performance_claims.model_info",
         return_value=FakeModelInfo(5_000_000),
     )
-    score, latency = metric({"name": "google/gemma-2b"})
+    # Mock Bedrock client as disabled to use download fallback
+    mock_bedrock = MagicMock()
+    mock_bedrock.enabled = False
+    mocker.patch("src.metrics.performance_claims.get_bedrock_client", return_value=mock_bedrock)
+    
+    score, latency = metric({"name": "google/gemma-2b", "url": "https://huggingface.co/google/gemma-2b"})
     assert score == 1.0
     assert latency >= 0
 
@@ -34,7 +41,7 @@ def test_performance_claims_api_error(mocker):
         "src.metrics.performance_claims.model_info",
         side_effect=HfHubHTTPError("Not Found", response=resp),
     )
-    score, latency = metric({"name": "not/a-real-model"})
+    score, latency = metric({"name": "not/a-real-model", "url": "https://huggingface.co/not/a-real-model"})
     assert score == 0.0
     assert latency >= 0
 
@@ -42,20 +49,25 @@ def test_performance_claims_api_error(mocker):
 @pytest.mark.parametrize(
     "downloads,expected",
     [
-        (0, 0.1),  # very low
-        (150, 0.2),  # >100
-        (1500, 0.4),  # >1000
-        (15000, 0.6),  # >10000
+        (0, 0.1),       # very low
+        (150, 0.2),     # >100
+        (1500, 0.4),    # >1000
+        (15000, 0.6),   # >10000
         (150000, 0.8),  # >100000
     ],
 )
 def test_performance_claims_download_tiers(mocker, downloads, expected):
-    """Covers all branches of the tiered scoring logic."""
+    """Covers all branches of the tiered scoring logic (download fallback)."""
     mocker.patch(
         "src.metrics.performance_claims.model_info",
         return_value=FakeModelInfo(downloads),
     )
-    score, latency = metric({"name": "some/model"})
+    # Mock Bedrock client as disabled to use download fallback
+    mock_bedrock = MagicMock()
+    mock_bedrock.enabled = False
+    mocker.patch("src.metrics.performance_claims.get_bedrock_client", return_value=mock_bedrock)
+    
+    score, latency = metric({"name": "some/model", "url": "https://huggingface.co/some/model"})
     assert score == expected
     assert latency >= 0
 
@@ -67,12 +79,29 @@ def test_performance_claims_missing_name():
     assert latency >= 0
 
 
+def test_performance_claims_non_hf_url():
+    """If URL is not huggingface.co, return 0.0."""
+    score, latency = metric({"name": "some/model", "url": "https://github.com/some/model"})
+    assert score == 0.0
+    assert latency >= 0
+
+
 def test_performance_claims_generic_exception(mocker):
     """If model_info raises a generic Exception, catch-all should return 0.0."""
     mocker.patch(
         "src.metrics.performance_claims.model_info",
         side_effect=RuntimeError("Network down"),
     )
-    score, latency = metric({"name": "any/model"})
+    score, latency = metric({"name": "any/model", "url": "https://huggingface.co/any/model"})
     assert score == 0.0
     assert latency >= 0
+
+
+def test_score_by_downloads_function():
+    """Test the _score_by_downloads helper function directly."""
+    assert _score_by_downloads(0) == 0.1
+    assert _score_by_downloads(150) == 0.2
+    assert _score_by_downloads(1500) == 0.4
+    assert _score_by_downloads(15000) == 0.6
+    assert _score_by_downloads(150000) == 0.8
+    assert _score_by_downloads(5000000) == 1.0

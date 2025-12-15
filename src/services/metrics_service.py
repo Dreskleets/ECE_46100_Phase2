@@ -1,3 +1,8 @@
+"""
+Metrics Service Module.
+
+Orchestrates the calculation of various metrics by loading metric plugins and aggregating results.
+"""
 import importlib
 import io
 import os
@@ -7,7 +12,7 @@ import stat
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 
-from src.api.models import PackageRating, MetricScore, SizeScore
+from src.api.models import PackageRating, SizeScore
 from src.utils.logging import logger
 
 # Re-using logic from run.py (adapted)
@@ -99,7 +104,7 @@ def compute_package_rating(url: str) -> PackageRating:
             print(f"DEBUG: Cloning failed: {e}")
             cloned_path = None
     else:
-        print(f"DEBUG: No repo to clone, skipping")
+        print("DEBUG: No repo to clone, skipping")
 
     # Don't fail if cloning didn't work - many metrics work without local_path
     # (HuggingFace models use API, not git cloning)
@@ -175,11 +180,11 @@ def compute_package_rating(url: str) -> PackageRating:
                 size_vals = list(v[0].values())
                 if size_vals:
                     vals.append(sum(size_vals) / len(size_vals))
-            elif isinstance(v[0], (int, float)):
+            elif isinstance(v[0], int | float):
                 vals.append(v[0])
         if vals:
             net_score_val = sum(vals)/len(vals)
-        net_score_lat = sum([v[1] for k,v in results.items() if isinstance(v[1], (int, float))])
+        net_score_lat = sum([v[1] for k,v in results.items() if isinstance(v[1], int | float)])
 
     # --- Explicitly run new metrics that have different signatures ---
     import time

@@ -1,7 +1,13 @@
+"""
+Main Application Entry Point.
+
+Configures and launches the FastAPI application, middleware, and routers.
+"""
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
+from src.api.experiment import router as experiment_router
 from src.api.routes import router
 
 # Trigger deploy
@@ -18,44 +24,23 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"DEBUG: Request: {request.method} {request.url}")
-    print(f"DEBUG: Headers: {request.headers}")
-    try:
-        body = await request.body()
-        if body:
-            print(f"DEBUG: Body: {body.decode('utf-8')}")
-    except Exception as e:
-        print(f"DEBUG: Could not read body: {e}")
+    # Log Request
+    # print(f"DEBUG: Request: {request.method} {request.url}") 
     
     response = await call_next(request)
     
-    # Capture response body for debugging
-    response_body = b""
-    async for chunk in response.body_iterator:
-        response_body += chunk
+    # Consuming response body in middleware is risky if not needed.
+    # I'll enable standard logging without body capture to avoid bugs.
+    # print(f"DEBUG: Response Status: {response.status_code}")
     
-    print(f"DEBUG: Response Status: {response.status_code}")
-    try:
-        print(f"DEBUG: Response Body: {response_body.decode('utf-8')}")
-    except Exception:
-        print(f"DEBUG: Response Body (Binary): {len(response_body)} bytes")
-        
-    # Reconstruct response
-    from fastapi.responses import Response
-    return Response(
-        content=response_body,
-        status_code=response.status_code,
-        headers=dict(response.headers),
-        media_type=response.media_type
-    )
+    return response
 
 app.include_router(router)
+app.include_router(experiment_router)
 
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
 
 # Lambda Handler
-
-
 handler = Mangum(app)

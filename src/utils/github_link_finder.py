@@ -1,7 +1,12 @@
+"""
+GitHub Link Finder Module.
+
+Extracts GitHub repository URLs using heuristics and metadata from HuggingFace.
+"""
 import logging
 import re
 
-from huggingface_hub import hf_hub_download, model_info
+from huggingface_hub import hf_hub_download
 
 logger = logging.getLogger("phase1_cli")
 
